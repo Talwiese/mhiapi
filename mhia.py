@@ -3,6 +3,7 @@ import os, subprocess, time, sys, logging, logging.config
 from modules.inhouse.signalhandler import SignalHandler
 from modules.inhouse.mhiacfg import MhiaConfig
 
+
 CONFIG_PATH = "./config.yaml" if os.path.isfile("./config.yaml") else "./config_default.yaml"
 CONFIG = MhiaConfig(CONFIG_PATH).get_config()
 
