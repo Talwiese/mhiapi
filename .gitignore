@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+config.yaml
+certs/**
+not_used/**
+test-codes/**
+log/**
+tests/pics/**
+uds_samples

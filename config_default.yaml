@@ -1,0 +1,176 @@
+# This default config file is named "config_defualt.yaml" and part of the repository.
+# The actual configuration for production environments should be a "config.yaml", that is ignored in the repository!
+# The programs will read this file if they don't find "config.yaml" in the main directory.
+
+# Use 1 or 0 to enable or disable a mhia module. Sampler should always have the value 1. Storer is not implemented yet.
+#  - sampler: Samples analog values using parameters set in config. Opens unix domain sockets and writes data for displayer and publisher to read.
+#  - displayer: Reponsible for user interactions on the mhia pi device. Controls display and reacts on buttons pushed on mhia pi.
+#  - publisher: Publishes sensor data using MQTT. Paths to TLS certificates and the clients key for connection to a MQTT-broker are specified here.
+#  - storer: Not implemented yet, will handel local storing of sensor data. Its planned to use a local Influx DB.  
+enabled_modules:
+  sampler: 1
+  displayer: 1
+  publisher: 0
+  storer: 0
+
+# The mhia pi v1.0 HAT from Talwiese IoT Solutions uses I²C adresses 0x68 and 0x6d.
+chip1_address: 0x68
+chip2_address: 0x6d
+
+# adc_bitrate can be 12, 14, 16 or 18
+# This is the bit rate that will be set on the ADC-chips. For now both chips will have same bit rates set.
+# The negative quanitzation levels are neglected on the mhia pi hardware.
+# The actual bit resolution is therefore one bit less.
+adc_bitrate: 12
+
+# This list sets desired sampling intervalls in milliseconds for each possible bit rate.
+# The values 20, 50, 100, and 333 are tested smallest sampling intervalls for the MCP3424 chips, and deliver .
+# Do not reduce these values! Higher values will most likely work without problems, lower values will probably result in unknown behaviour. 
+requested_sampling_interval: 
+  12: 20
+  14: 50
+  16: 100
+  18: 333
+
+# adc_gain can be 1, 2, 4 or 8
+# The programmable gain amplification (PGA) of the MCP3424 chips. For now both chips will have the same PGA set.
+# Should be set in accordance with your sensor application's maximum output voltage and desired sensitivity.
+# An adc_gain of 1 means that the actual current voltage difference between a channels pin and GND is beeing quantized.    
+adc_gain: 1
+
+# There are 8 sensor channels from 1 to 8 on the mhia pi board, 
+# channels 1, 2, 3, 4 are converted on first chip,
+# channels 5, 6, 7, 8 are converted on the second chip.
+# The value should be the wanted channels from 1 to 8 seperated by commas (eg.: 1,2 or 1,2,3,4,5,6,7,8 or ...)
+active_channels: 1,2
+
+
+# Configuration of each channel as a dictionary.
+# For each channel:
+#  - description can be any string
+#  - min_voltage and max_voltage are the possible sensor's output
+#  - calc are parameters for live calculation of the qunatized values and contains a unit and coefficients
+#  - consider a polynom in the form: a*x^1 + b*x^0 + c*x^(-1) = a*x + b + c/x (a, b and c correspond to '1', '0' and '-1' keys in this section)
+#  - in other words: value of '0' acts as an offset, value of '1' the factor for direct proportionality and value of '-1' is the factor for indirect proportionality 
+#  - In most situations you will normally have non-zero values for '0' and '1' or for '0' and '-1' but not for all three coefficients
+channels_config:
+  1:
+    description: Poti
+    min_voltage: 0
+    max_voltage: 5
+    calc:
+      unit: A
+      coefficients: # coefficients where the power of x is 1, 0 and/or -1
+        1 : 2.532
+        0 : 0
+        -1: 0       
+  2:
+    description: Blablu auf Kanal 2
+    calc:
+      unit: mA
+      coefficients:
+        1 : 0
+        0 : 0
+        -1: 1
+  3:
+    description: Blabla
+    max_value: 5
+  4:
+    description: Blabla
+    max_value: 5 
+  5:
+    description: Blabla
+    max_value: 5 
+  6:
+    description: Blabla
+    max_value: 5
+  7:
+    description: Blabla
+    max_value: 5
+  8:
+    description: Blabla
+    max_value: 5
+
+# TBD fonts
+# Color settings of the display as a dictionary of lists each with three values between 0-255 for red, green and blue 
+display:
+  back_color:
+    - 235
+    - 113
+    - 113
+  text_color: 
+    - 12
+    - 64
+    - 64
+  text_color_less_visible:
+    - 255
+    - 0
+    - 0
+  design_color1:
+    - 115
+    - 53
+    - 53
+  design_color2:
+    - 200
+    - 100
+    - 100
+  back_color2:
+    - 215
+    - 108
+    - 108
+  qr_text: "https://www.mhia.at"
+
+buttons:
+  bounce_time: 300 # for debouncing signal from buttons on the device, a time interval in miliseconds, 300 is a good value
+
+# Setting for the publisher
+# broker host and broker port are the those of the MQTT broker (e.g. an mosquiotto instance) (an MQTT broker is sometimes also called MQTT server)
+# certfile_path: path to the TLS client certificate, signed by the authority, that the broker/server is trusting
+# keyfile_path: path to the device's secret key that was used for the certificate signing request.
+# cafile_path: path to a server certificate (or certificate chain) that makes you trust the MQTT broker at broker_host
+# publisher.py works for now only with TLS connection, so all settings here must be correct. TBD: option without TLS.
+publisher:
+  broker_host: localhost
+  broker_port: 1883
+  certfile_path: ""
+  keyfile_path: ""
+  cafile_path: ""
+
+logging:
+  version: 1
+  formatters:
+    standard:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    error:
+      format: "%(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
+  handlers:
+      standard_file_handler: 
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: standard
+        filename: ./log/mhia.log
+        maxBytes: 1048576 # 1MB
+        backupCount: 5
+        encoding: utf8
+      error_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: ERROR
+        formatter: error
+        filename: ./log/errors.log
+        maxBytes: 1048576 # 1MB
+        backupCount: 5
+        encoding: utf8
+  loggers:
+    <module>:
+      level: INFO
+      handlers: [standard_file_handler]
+      propagate: yes
+  loggers:
+    <module>:
+      level: ERROR
+      handlers: [error_file_handler]
+      propagate: yes
+
+
+
+
