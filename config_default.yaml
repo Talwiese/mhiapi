@@ -52,7 +52,7 @@ active_channels: 1,2
 #  - calc are parameters for live calculation of the qunatized values and contains a unit and coefficients
 #  - consider a polynom in the form: a*x^1 + b*x^0 + c*x^(-1) = a*x + b + c/x (a, b and c correspond to '1', '0' and '-1' keys in this section)
 #  - in other words: value of '0' acts as an offset, value of '1' the factor for direct proportionality and value of '-1' is the factor for indirect proportionality 
-#  - In most situations you will normally have non-zero values for '0' and '1' or for '0' and '-1' but not for all three coefficients
+#  - In most situations you will normally have non-zero values for '0' and '1' or for '0' and '-1' but not for all three coefficients at the same time
 channels_config:
   1:
     description: Poti
