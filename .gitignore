@@ -1,6 +1,8 @@
 # these ignores are mhia pi specific
-certs/*
-log/*
+certs/**
+!certs/README.md
+log/**
+!log/README.md
 config.yaml
 uds_samples
 not_used/**
