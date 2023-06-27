@@ -1,5 +1,5 @@
 # mhia pi
-This repository is meant to be used with a Raspberry Pi singel board computer or other compatible computers. Raspberry Pi is a trademark of Raspberry Pi Ltd. The authors of this repository are not related in any kind to Raspberry Pi Ltd.
+This repository is meant to be used with a Raspberry Pi single board computer (SBC) or other compatible computers. Raspberry Pi is a trademark of Raspberry Pi Ltd. The authors of this repository are not related in any kind to Raspberry Pi Ltd.
 Beside of a SBC, you will also need specific hardware on i2c (2x MCP3424 ADCs) and on spi (a ST7735S controlled 172x320 pixel color LCD) to be able to run the mhia pi application.
 The mhia pi HAT produced by Talwiese IoT Solutions is the device for which this application was initially developed for, updates are also tested on mhia pi HATs.
 There is also a wiki here: www.mhia.at
