@@ -17,7 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import time, struct, socket, ssl, os.path, logging, logging.config, sys
+import struct, socket, ssl, os.path, logging, logging.config, sys
 import paho.mqtt.client as mqtt
 from modules.inhouse.signalhandler import SignalHandler
 from modules.inhouse.mhiacfg import MhiaConfig
@@ -39,13 +39,12 @@ def on_connect(client, userdata, flags, rc):
     common_logger.info("Connected to MQTT broker with result code " + str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("$SYS/#")
+    #client.subscribe("$SYS/#")
 
 def on_message(client, userdata, msg):
     common_logger.info("Received: " + msg.topic + str(msg.payload))
 
 def main():
-    cfg = MhiaConfig(config_path).get_config()    
     signalhandler = SignalHandler()
     socket_path = "./uds_samples"
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -72,16 +71,22 @@ def main():
     mqttc.on_connect = on_connect
     mqttc.on_message = on_message
     toSend = []
-    certfile=cfg.get('publisher').get('certfile_path')
-    keyfile=cfg.get('publisher').get('keyfile_path')
-    cafile=cfg.get('publisher').get('cafile_path')
-    brokerhost=cfg.get('publisher').get('broker_host')
-    brokerport=cfg.get('publisher').get('broker_port')
+    certfile=CONFIG['publisher']['certfile_path']
+    keyfile=CONFIG['publisher']['keyfile_path']
+    cafile=CONFIG['publisher']['cafile_path']
+    brokerhost=CONFIG['publisher']['broker_host']
+    brokerport=CONFIG['publisher']['broker_port']
 
     common_logger.info(f"Attempting to connect to MQTT broker using client cert:{certfile} and using cafile:{cafile} to authenticate server (broker).")
 
     mqttc.tls_set(ca_certs=cafile, certfile=certfile, keyfile=keyfile, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLS, ciphers=None) 
 
+    # prepare topic
+    HOSTNAME = socket.gethostname()
+    topic_to_publish_about = CONFIG['publisher']['topic']
+    topic_to_publish_about += ("/" + HOSTNAME + "/") if CONFIG['publisher']['add_hostname_to_topic'] else "/"
+    common_logger.info("Will use this topic: " + topic_to_publish_about)
+    #print(topic_to_publish_about)
     try:
         mqttc.connect(brokerhost, port=brokerport, keepalive=60, bind_address="")
     except Exception as e:
@@ -96,15 +101,16 @@ def main():
 
     while not (signalhandler.interrupt or signalhandler.terminate):
         toSend.clear()
+        # exception handling is still missing here, tbd
         while len(toSend) < 21:
             byx = sock.recv(20)
-            #print(type(byx))
-            channel, timestamp, value = struct.unpack('!idd', byx)
-            mqttc.publish('test', byx)
+            channel, timestamp, value = struct.unpack('!idd', byx) #!idd means: int (4bytes), double (8bytes), double (8bytes)
             a, b = str(timestamp), str(value)
+            mqttc.publish(topic_to_publish_about + "ch_" + str(channel) + "/sensor_time/", a)
+            mqttc.publish(topic_to_publish_about + "ch_" + str(channel) + "/sensor_value/", b)
             toSend.append((a,b))
         
-
+        #the next commented line was a test for https post instead of mqtt, maybe https option in future
         #requests.post('https://nr1.ayatollahi.com/pipein', data = toSend, cert=('./mhiaProbe1.crt', './mhiaProbe1.key.pem'))
     
 if __name__=="__main__":

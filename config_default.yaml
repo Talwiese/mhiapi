@@ -44,7 +44,6 @@ adc_gain: 1
 # The value should be the wanted channels from 1 to 8 seperated by commas (eg.: 1,2 or 1,2,3,4,5,6,7,8 or ...)
 active_channels: 1,2
 
-
 # Configuration of each channel as a dictionary.
 # For each channel:
 #  - description can be any string
@@ -91,21 +90,24 @@ channels_config:
     description: Blabla
     max_value: 5
 
-# TBD fonts
-# Color settings of the display as a dictionary of lists each with three values between 0-255 for red, green and blue 
 display:
+
+  # during runtime you can toggle between calculated and raw values by pushing the "center" button
+  show_calculated_values_as_default: no 
+
+  # Color settings of the display as a dictionary of lists each with three values between 0-255 for red, green and blue 
   back_color:
-    - 235
-    - 113
-    - 113
+    - 200
+    - 98
+    - 98
   text_color: 
-    - 12
-    - 64
-    - 64
+    - 10
+    - 56
+    - 56
   text_color_less_visible:
-    - 255
-    - 0
-    - 0
+    - 100
+    - 100
+    - 100
   design_color1:
     - 115
     - 53
@@ -118,6 +120,31 @@ display:
     - 215
     - 108
     - 108
+  
+  hw_settings:  # Don't change these! Do only if you know what you're doing.
+    spi_bus: 0
+    spi_device: 0
+    spi_freq: 100000000
+    reset_pin: 19
+    command_pin: 6
+    backlight_pin: 13
+    backlight_freq: 1000
+
+  # fonts with fixed letter width look better when displaying variable values.
+  # If you use other fonts, you also might want to change the keys here, meaning that you'll need to update mhialcd.py in ./modules/inhouse
+  fontpaths:  
+    SourceCodeProRegular: "fonts/source-code-pro/SourceCodePro-Regular.otf"
+    SourceCodeProBold: "fonts/source-code-pro/SourceCodePro-Bold.otf"
+    FontAwesomeFreeRegular: "fonts/fontawesome6-free/otfs/Font Awesome 6 Free-Regular-400.otf"
+  fontsizes:
+    smallest: 16
+    smaller: 16
+    small: 26
+    medium: 30
+    large: 32
+    larger: 62
+    largest: 62
+  
   qr_text: "https://www.mhia.at"
 
 buttons:
@@ -135,6 +162,8 @@ publisher:
   certfile_path: ""
   keyfile_path: ""
   cafile_path: ""
+  topic: "/Factory42/Line3/Machine7"
+  add_hostname_to_topic: Yes
 
 logging:
   version: 1
@@ -149,7 +178,7 @@ logging:
         level: INFO
         formatter: standard
         filename: ./log/mhia.log
-        maxBytes: 1048576 # 1MB
+        maxBytes: 1048576 # is 1MB
         backupCount: 5
         encoding: utf8
       error_file_handler:
@@ -157,20 +186,15 @@ logging:
         level: ERROR
         formatter: error
         filename: ./log/errors.log
-        maxBytes: 1048576 # 1MB
+        maxBytes: 1048576 # is 1MB
         backupCount: 5
         encoding: utf8
   loggers:
-    <module>:
+    standard:
       level: INFO
       handlers: [standard_file_handler]
       propagate: yes
-  loggers:
-    <module>:
+    error:
       level: ERROR
       handlers: [error_file_handler]
       propagate: yes
-
-
-
-

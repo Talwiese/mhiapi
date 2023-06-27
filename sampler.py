@@ -160,6 +160,8 @@ def main():
                 if publisher_connected: publisher_socket.send(data2send)
             except Exception as e:
                 error_logger.error(f"Could not send data over socket, because: {e} !")
+                if displayer_connected: displayer_socket.close()
+                if publisher_connected: publisher_socket.close()
                 common_logger.info("Exiting due to error!")
                 sys.exit(1)       
 
@@ -175,8 +177,11 @@ def main():
             
             sleepval = requested_sampling_interval - actual_sampling_duration[j]
             time.sleep(sleepval)
-
+    
+    if displayer_connected: displayer_socket.close()
+    if publisher_connected: publisher_socket.close()
     common_logger.info("Exiting because of SIGINT or SIGTERM!")
+    
     sys.exit(0)
 
 if __name__=="__main__":

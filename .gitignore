@@ -1,11 +1,12 @@
 # these ignores are mhia pi specific
+certs/*
+log/*
 config.yaml
-certs/**
+uds_samples
 not_used/**
 test-codes/**
-log/**
-tests/pics/**
-uds_samples
+# because of unclear license situation of test pics i got, i included this sub-directory
+tests/pics/** 
 
 # the ignores from here downwards are from github's .gitignore template for Python
 
