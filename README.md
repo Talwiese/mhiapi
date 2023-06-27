@@ -1,21 +1,12 @@
-# MHiAplusLCD
-## HW list:
-- RPi Zero + RPi OS
-- adcpi
-  - https://www.abelectronics.co.uk/p/69/adc-pi-raspberry-pi-analogue-to-digital-converter
-  - https://www.abelectronics.co.uk/kb/article/23/python-library-and-demos
-  - repo python lib: https://github.com/abelectronicsuk/ABElectronics_Python_Libraries
-- 0.96inch LCD Module (ST7735S)
-  - https://www.waveshare.com/product/displays/lcd-oled/lcd-oled-3/0.96inch-lcd-module.htm
-  - https://www.waveshare.com/wiki/0.96inch_LCD_Module
+# mhia pi
+This repository is meant to be used with a Raspberry Pi singel board computer or othe compatibel computers. Raspberry Pi is a trademark of Raspberry Pi Ltd. The authors of this repository are not related in any kind to Raspberry Ltd.
+Beside of a SBC, you will also need specific hardware on i2c (2x MCP3424 ADCs) and on spi (a ST7735S controlled 172x320 pixel color LCD) to be able to run the mhia pi application.
+The mhia pi HAT developed by Talwiese IoT Solutions is the device for which this application is tested on.
 
-- Installation steps
-  - configure zero:
-    - in /boot/config.txt:
-      - uncomment dtparam=i2c_arm=on
-      - uncomment dtparam=spi=on
-      - add dtparam=i2c_baudrate=1000000
-      - core_freq=250
-    - in /etc/modules add i2c-dev
-  - follow instruction from https://www.waveshare.com/wiki/0.96inch_LCD_Module
+
+- HW description available at mhia.at
+
+- Installation steps: TBD, please checkout mhia.at
+
+- Fast instructions: setup your Raspberry Pi, so it is connected to the internet, activate i2c and spi. make sure you have python3 and theses packages: pil, numpy, RPi.GPIO, spidev, smbus2, pyyaml, qrcode and paho-mqtt. clone this repo. change and save config-default.yaml as you wish under filename config.yaml. start the app by running the mhia.py script or by enabling and starting the systemd service: mhia.service
    
