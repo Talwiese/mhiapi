@@ -1,12 +1,21 @@
-import time, os, sys
-sys.path.append("./LCD-Module")
-from lib import LCD_1inch47
+import time, os, sys, spidev as SPI
 from PIL import Image,ImageDraw,ImageFont
+sys.path.append("../")
+from modules.thirdparty.waveshare.LCD_1inch47 import LCD_1inch47
+
 from mhialcd import MHiA_LCD
 
-lcd = MHiA_LCD()
-lcd.disp.bl_DutyCycle(20)
-lcd.disp.bl_Frequency(100)
+bus = 0
+device = 0
+RST = 19
+DC = 6
+BL = 13
+
+lcd = LCD_1inch47(spi=SPI.SpiDev(bus, device),spi_freq=100000000,rst=RST,dc=DC,bl=BL, bl_freq = 1)
+
+# lcd = MHiA_LCD()
+# lcd.disp.bl_DutyCycle(20)
+# lcd.disp.bl_Frequency(100)
 
 i = [None] * 8
 for j in range(len(i)):
