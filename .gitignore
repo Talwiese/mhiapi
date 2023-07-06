@@ -8,7 +8,8 @@ uds_samples
 not_used/**
 test-codes/**
 # because of unclear license situation of test pics i got, i included this sub-directory
-tests/pics/** 
+tests/pics/*.jpg
+tests/pics/*.png 
 
 # the ignores from here downwards are from github's .gitignore template for Python
 

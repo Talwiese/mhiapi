@@ -92,7 +92,7 @@ def main():
 
     # CONFIG['activ_channels'] is a list, MhiaConfig already formatted the string in config.yaml
     active_channels = CONFIG['active_channels']     
-
+    print(CONFIG['active_channels'])
     # now the main loop starts and runs till process is interrupted by signal, this while-block can still be optimized!
     while not (signalhandler.interrupt or signalhandler.terminate):    
         display_mode = lcd.getmode()        
