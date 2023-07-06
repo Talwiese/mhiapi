@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # displayer.py - controls the display on mhia pi, handles user input
-# Copyright (C) 2023  Iman Ayatollahi
+# Copyright (C) 2023  Iman Ayatollahi, Talwiese IoT Solutions e.U.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
