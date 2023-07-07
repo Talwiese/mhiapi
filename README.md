@@ -5,7 +5,7 @@ The mhia pi HAT produced by Talwiese IoT Solutions is the device for which this 
 There is also a wiki here: www.mhia.at
 - HW description available at mhia.at
 
-- Installation steps: TBD, please checkout mhia.at
+- Installation steps: TBD, please visit mhia.at for more info
 
 - Fast instructions: setup your Raspberry Pi, so it is connected to the internet, activate i2c and spi. make sure you have python3 and theses packages: pil, numpy, RPi.GPIO, spidev, smbus2, pyyaml, qrcode and paho-mqtt. clone this repo. change and save config-default.yaml as you wish under filename config.yaml. start the app by running the mhia.py script or by enabling and starting the systemd service: mhia.service
    
