@@ -33,7 +33,7 @@ class MhiaDisplay:
         
         self.font4Icons = ImageFont.truetype(config['display']['fontpaths']['FontAwesomeFreeRegular'],config['display']['fontsizes']['largest'])
         # The next block with the tuples on the right side could be somehow moved into mhiacfg, so that the color values are already loaded as tuples here.
-        self.back_color = tuple(self.cfg['display']['back_color'])
+        self.back_color1 = tuple(self.cfg['display']['back_color'])
         self.back_color2 = tuple(self.cfg['display']['back_color2'])
         self.text_color = tuple(self.cfg['display']['text_color'])
         self.design_color1 = tuple(self.cfg['display']['design_color1'])
@@ -49,18 +49,16 @@ class MhiaDisplay:
         BL = config['display']['hw_settings']['backlight_pin']
         BL_FREQ = config['display']['hw_settings']['backlight_freq']
         self.disp = LCD_1inch47.LCD_1inch47(spi=spidev.SpiDev(SPI_BUS, SPI_DEVICE),spi_freq=SPI_FREQ,rst=RST,dc=DC,bl=BL, bl_freq=BL_FREQ, i2c=None)
-        
-        self.disp.Init()
-        self.disp.clear()
-        #self.disp.bl_DutyCycle(100) # between 0 and 100, flickrs more likely at low values
+
+        #self.disp.bl_DutyCycle(100) # between 0 and 100, flickrs more likely at low values, would need another bcm2835 driver apparently
 
         #Creating the base images to be shown on the display
-        self.portraitAllCh = Image.new("RGB", (172, 320), self.back_color)
-        self.landscapeOneCh = Image.new("RGB", (320,172), self.back_color)
-        self.landscapeGraph = Image.new("RGB", (172,320), self.back_color) # this is drawn rotated from beginning, so no img.rotate needed later
-        self.qr_img = Image.new("RGB", (172,320), self.back_color)
-        self.labeltmpimg = Image.new("RGB", (12,172), self.back_color) # this is for 
-        self.labeltmpimg2 = Image.new("RGB", (60,40), self.back_color)
+        self.portraitAllCh = Image.new("RGB", (172, 320), self.back_color1)
+        self.landscapeOneCh = Image.new("RGB", (320,172), self.back_color1)
+        self.landscapeGraph = Image.new("RGB", (172,320), self.back_color1) # this is drawn rotated from beginning, so no img.rotate needed later
+        self.qr_img = Image.new("RGB", (172,320), self.back_color1)
+        self.labeltmpimg = Image.new("RGB", (12,172), self.back_color1) # this is for 
+        self.labeltmpimg2 = Image.new("RGB", (60,40), self.back_color1)
 
         self.__mode = 11 # setting the mode of display, 11 means show channel 1 (second digit) in landscape mode (first digit) 
 
@@ -91,7 +89,7 @@ class MhiaDisplay:
 
         # prepare background for portrait mode
         for j in range(0,9):
-            back_color_dyn = self.back_color if j%2 == 1 else self.back_color2
+            back_color_dyn = self.back_color1 if j%2 == 1 else self.back_color2
             ImageDraw.Draw(self.portraitAllCh).rectangle((0, 0 + j*36 - 4, 172, (j+1)*36 - 4), fill=back_color_dyn)
         for j in range(1,9):
             ImageDraw.Draw(self.portraitAllCh).text((8, (j*36 - 1)), str(j), font = self.font4ValueSmall, fill = self.design_color1)
@@ -111,16 +109,18 @@ class MhiaDisplay:
         self.disp.Init()
         self.disp.clear()
 
+        self.img_to_show_next = self.portraitAllCh
+
     # def getwifi_symbol(self):
     #     return self.__connected_wifi_symbol
     
     # def setwifi_symbol(self, enable_now):        
     #     if self.__connected_wifi_symbol and not enable_now:
-    #         ImageDraw.Draw(self.landscapeOneCh).rectangle((292, 0, 320, 28 ), fill=self.back_color)
+    #         ImageDraw.Draw(self.landscapeOneCh).rectangle((292, 0, 320, 28 ), fill=self.back_color1)
     #         ImageDraw.Draw(self.landscapeOneCh).text((292, 0), "F", font = self.font4Icons, fill = self.text_color_less_visible) 
     #         self.__connected_wifi_symbol = False      
     #     elif not self.__connected_wifi_symbol and enable_now:
-    #         ImageDraw.Draw(self.landscapeOneCh).rectangle((292, 0, 320, 28 ), fill=self.back_color)
+    #         ImageDraw.Draw(self.landscapeOneCh).rectangle((292, 0, 320, 28 ), fill=self.back_color1)
     #         ImageDraw.Draw(self.landscapeOneCh).text((292, 0), "D", font = self.font4Icons, fill = self.text_color)
     #         self.__connected_wifi_symbol = True            
     #     else: pass
@@ -140,41 +140,34 @@ class MhiaDisplay:
         :retrun: the time needed to execute in seconds
         :rtype: float
         """
-        
-        start_time_of_this_call = time.time()
-            
+        start_time_of_this_call = time.time()    
         i = channel - 1 + 1 # the first i with index 0 is for the header-info on the display
-        
         text_to_show = "{:.3f}".format(value) + "V"
-        back_color_dyn = self.back_color if i%2 == 1 else self.back_color2
-        ImageDraw.Draw(self.portraitAllCh).rectangle((33, i*36 - 2, 172, (i+1)*36 - 4), fill=back_color_dyn)
-        
-        ImageDraw.Draw(self.portraitAllCh).text((44, i*36 - 1), text_to_show, font = self.font4ValueSmall, fill = self.text_color)
-        
-        self.disp.ShowImage(self.portraitAllCh)
+        back_color_dyn = self.back_color1 if i%2 == 1 else self.back_color2 #to have alternating backgrounds for each line (channel)
+        ImageDraw.Draw(self.portraitAllCh).rectangle((33, i*36 - 2, 172, (i+1)*36 - 4), fill=back_color_dyn) #draws an empty rectangle over the value of a channel      
+        ImageDraw.Draw(self.portraitAllCh).text((44, i*36 - 1), text_to_show, font = self.font4ValueSmall, fill = self.text_color) #draws the updated value of a channel
+        #self.disp.ShowImage(self.portraitAllCh)
         self.__mode = 9 # 9 stand for the mode where all channels are shown in portrait orientation
-        #print(f"all: {time.time()-start_time_of_this_call} and {text_to_show}")
+        self.img_to_show_next = self.portraitAllCh
         return time.time()-start_time_of_this_call
     
     def show_one_channel(self, channel, value):
         start_time_of_this_call = time.time()
-        
         # XOR, if calc wanted but sens shown last time, or if sens wanted and calc shown last time.... to clear field and update field on display
         if (self.show_calc_val ^ self.calc_shown_prev_time):    
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((56,32, 130, 59), fill=self.back_color)   # clear
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((56,32, 130, 59), fill=self.back_color1)   # clear
             #sens_calc_text = sens_calc_text[1] if self.show_calc_val else sens_calc_text[0]
             ImageDraw.Draw(self.landscapeOneCh).text((56, 30), self.sens_and_calc_text[int(self.show_calc_val)], font = self.font4ChannelNumber, fill = self.design_color1)
             if self.show_calc_val: self.calc_shown_prev_time = True
             else: self.calc_shown_prev_time=False
         else: pass
-        
         if 10 < self.__mode < 19:
             if channel != self.lastShownSingleChannel:
-                ImageDraw.Draw(self.landscapeOneCh).rectangle((20,92, 40, 116), fill=self.back_color) # erase channel number
+                ImageDraw.Draw(self.landscapeOneCh).rectangle((20,92, 40, 116), fill=self.back_color1) # erase channel number
                 self.lastShownSingleChannel = channel
             else: # whenever show_one_channel is called with same channel as previous call
                 ImageDraw.Draw(self.landscapeOneCh).text((21, 84), str(channel), font = self.font4ChannelNumber, fill = self.design_color1)
-                ImageDraw.Draw(self.landscapeOneCh).rectangle((56,60, 320, 118), fill=self.back_color) # erase (old) value
+                ImageDraw.Draw(self.landscapeOneCh).rectangle((56,60, 320, 118), fill=self.back_color1) # erase (old) value
                 if not self.show_calc_val:
                     text_to_show = "{:.3f}".format(value) + "V"
                 else: # here value is calculated using the coefficients from config
@@ -187,11 +180,11 @@ class MhiaDisplay:
             ImageDraw.Draw(self.landscapeOneCh).text((9, 3), text_to_show3, font = self.Font1, fill = self.text_color)
             text_to_show2 = "Sensing range: 0 to " + str(self.cfg.get('channels_config').get(channel).get('max_value')) + " " + self.cfg.get('channels_config').get(channel).get('unit')
             ImageDraw.Draw(self.landscapeOneCh).text((9, 142), text_to_show2, font = self.Font1, fill = self.text_color)        
-        
-        self.disp.ShowImage(self.landscapeOneCh.rotate(angle=270, expand=1))
+        time4=time.time()
+        #self.disp.ShowImage(self.landscapeOneCh.rotate(angle=270, expand=1))
         self.__mode = 10 + channel
         self.lastShownSingleChannel = channel
-        #print(time.time()-start_time_of_this_call)
+        self.img_to_show_next = self.landscapeOneCh.rotate(angle=270, expand=1)
         return time.time()-start_time_of_this_call
     
     def show_one_graph(self, ch, v):
@@ -206,7 +199,7 @@ class MhiaDisplay:
         #if 0 < ch  < 9:
         x=0
         y = 11 + v * 30
-        ImageDraw.Draw(self.landscapeGraph).rectangle((11,40, 162, 281), fill=self.back_color) # erase graph
+        ImageDraw.Draw(self.landscapeGraph).rectangle((11,40, 162, 281), fill=self.back_color1) # erase graph
         for i in range(0,240-2,2):
             self.points_flat[i]=self.points_flat[i+2]
             self.points_flat[238] = y                
@@ -217,34 +210,34 @@ class MhiaDisplay:
         ImageDraw.Draw(self.landscapeGraph).line([(101, 40),(101, 300)], fill = self.design_color2, width = 2)
         ImageDraw.Draw(self.landscapeGraph).line([(131, 40),(131, 300)], fill = self.design_color2, width = 2)
         ImageDraw.Draw(self.landscapeGraph).line([(161, 40),(161, 300)], fill = self.design_color2, width = 2)
-        ImageDraw.Draw(self.labeltmpimg2).rectangle((0,0,60,40), fill=self.back_color)
+        ImageDraw.Draw(self.labeltmpimg2).rectangle((0,0,60,40), fill=self.back_color1)
         ImageDraw.Draw(self.labeltmpimg2).multiline_text((0,0), " CH " + str(ch) + "\n" + str(v), fill=self.text_color, font=self.font4Description)
         self.landscapeGraph.paste(self.labeltmpimg2.rotate(angle=270, expand=1), (120,250))
-        self.disp.ShowImage(self.landscapeGraph)
+        self.img_to_show_next=self.landscapeGraph
 
     def wifi_symbol(self, enabled):
         symb_to_show = "D" if enabled else "F"
-        img = Image.new("RGB", (28,28), self.back_color)
+        img = Image.new("RGB", (28,28), self.back_color1)
         ImageDraw.Draw(img).text((0, 0), symb_to_show, font = self.Font5, fill = self.text_color)
         self.landscapeOneCh.paste(img, (290, 0))
         #self.disp.ShowImage(self.landscapeOneCh.rotate(angle=270, expand=1))
 
     def blink(self, enabled):
         symb_to_show = "•"
-        img = Image.new("RGB", (28,28), self.back_color)
+        img = Image.new("RGB", (28,28), self.back_color1)
         ImageDraw.Draw(img).text((0, 0), symb_to_show, font = self.Font, fill = self.text_color)
         self.landscapeOneCh.paste(img, (260, 0))
         self.disp.ShowImage(self.landscapeOneCh.rotate(angle=270, expand=1))
-        img = Image.new("RGB", (28,28), self.back_color)
+        img = Image.new("RGB", (28,28), self.back_color1)
         self.landscapeOneCh.paste(img, (260, 0))
 
     def refresh_graph(self):
-        self.img3 = Image.new("RGB", (172,320), self.back_color)
+        self.img3 = Image.new("RGB", (172,320), self.back_color1)
 
     def display_qr(self, img):
         #self.disp.clear()
-        self.qr_img = Image.new("RGB", (172,320), self.back_color)
+        self.qr_img = Image.new("RGB", (172,320), self.back_color1)
         self.qr_img.paste(img, (0,0))
-        self.disp.ShowImage(self.qr_img)
+        self.img_to_show_next=self.qr_img
         self.__mode = 40 
         return

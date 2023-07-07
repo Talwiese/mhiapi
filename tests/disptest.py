@@ -19,7 +19,7 @@ RST = 19
 DC = 6
 BL = 13
 
-lcd = LCD_1inch47(spi=SPI.SpiDev(bus, device),spi_freq=100000000,rst=RST,dc=DC,bl=BL, bl_freq = 1)
+lcd = LCD_1inch47(spi=SPI.SpiDev(bus, device),spi_freq=10000000,rst=RST,dc=DC,bl=BL, bl_freq = 1)
 
 i = [None] * 8
 

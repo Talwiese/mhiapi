@@ -50,7 +50,7 @@ def main():
         try:
             os.remove(socket_path)
         except OSError as error:
-            error_logger.exception(f"{error}, could not remove old socket.")
+            error_logger.exception(f"{error}, could not remove last broken uds-file.")
             common_logger.info("Exiting.")
             sys.exit(1)
         else: pass
@@ -134,7 +134,9 @@ def main():
     
     common_logger.info("All requested processes connected!")
     
-    sock.setblocking(False)
+    #sock.setblocking(False)
+    if displayer_connected: displayer_socket.setblocking(False)
+    if publisher_connected: publisher_socket.setblocking(False)
 
     # this loop calls capture continuesly, calculates the variable sleep time till next capture call and sends data to connected processes (modules)
     active_channels = CONFIG['active_channels']
@@ -150,7 +152,6 @@ def main():
     while not (signalhandler.interrupt or signalhandler.terminate):        
 
         for i in active_channels:
-            last_time = time.time()
             j=i-1 # active_channels is between 1 and 8, j as index for the lists between 0 and 7, be carefull here what is i and what is j
             actual_sampling_duration[j], sample_timestamps[j], sample_values[j] = capture(adc, i)
             data2send = bytearray(struct.pack(struct_def, i, sample_timestamps[j],sample_values[j]))
@@ -174,7 +175,7 @@ def main():
                     common_logger.warn(f"mean sampling duration {average_sampling_duration*1000:.1f} ms, higher than {requested_sampling_interval*1000:.1f}.")
                 common_logger.info(f"mean sampling duration {average_sampling_duration*1000:.1f} ms, lower than {requested_sampling_interval*1000:.1f}.")
                 count_for_eval = int(period_of_time_for_moving_average / requested_sampling_interval)
-            
+            print("actual" + str(actual_sampling_duration[j]))
             sleepval = requested_sampling_interval - actual_sampling_duration[j]
             time.sleep(sleepval)
     

@@ -53,7 +53,7 @@ class MhiaButtons:
         position_in_dict = self.ButtonGPIOAssignmentValues.index(pin)
         self._which_button_pushed = self.ButtonGPIOAssignmentKeys[position_in_dict]
         self.any_button_pushed = True
-        #print(self._which_button_pushed)
+        print(self._which_button_pushed)
         return None
 
     def get_last_button_pushed(self):

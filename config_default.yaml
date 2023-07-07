@@ -21,7 +21,7 @@ chip2_address: 0x6d
 # This is the bit rate that will be set on the ADC-chips. For now both chips will have same bit rates set.
 # The negative quanitzation levels are neglected on the mhia pi hardware.
 # The actual bit resolution is therefore one bit less.
-adc_bitrate: 12
+adc_bitrate: 14
 
 # This list sets desired sampling intervalls in milliseconds for each possible bit rate.
 # The values 20, 50, 100, and 333 are tested smallest sampling intervalls for the MCP3424 chips, and deliver .
@@ -30,7 +30,7 @@ requested_sampling_interval:
   12: 20
   14: 50
   16: 100
-  18: 333
+  18: 1000
 
 # adc_gain can be 1, 2, 4 or 8
 # The programmable gain amplification (PGA) of the MCP3424 chips. For now both chips will have the same PGA set.
