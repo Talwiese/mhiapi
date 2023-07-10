@@ -150,35 +150,29 @@ def main():
     struct_def = '!idd'     # over the uds connection a struct is passed that is packed, !idd stands for one int and two doubles, that is 4+8+8=20 bytes
     
     while not (signalhandler.interrupt or signalhandler.terminate):        
-
         for i in active_channels:
             j=i-1 # active_channels is between 1 and 8, j as index for the lists between 0 and 7, be carefull here what is i and what is j
             actual_sampling_duration[j], sample_timestamps[j], sample_values[j] = capture(adc, i)
             data2send = bytearray(struct.pack(struct_def, i, sample_timestamps[j],sample_values[j]))
-
             try:
                 if displayer_connected: displayer_socket.send(data2send)
                 if publisher_connected: publisher_socket.send(data2send)
             except Exception as e:
-                error_logger.error(f"Could not send data over socket, because: {e} !")
+                error_logger.error(f"Could not send data over to other processes: {e} !")
                 if displayer_connected: displayer_socket.close()
                 if publisher_connected: publisher_socket.close()
                 common_logger.info("Exiting due to error!")
                 sys.exit(1)       
-
             average_sampling_duration = (average_sampling_duration + actual_sampling_duration[j])/2
             count_for_eval = count_for_eval - 1
             if count_for_eval > 1: pass
             else: 
-                #print((req_sample_interval - mean_sampling_duration) * 1000)
                 if average_sampling_duration > requested_sampling_interval:
                     common_logger.warn(f"mean sampling duration {average_sampling_duration*1000:.1f} ms, higher than {requested_sampling_interval*1000:.1f}.")
                 common_logger.info(f"mean sampling duration {average_sampling_duration*1000:.1f} ms, lower than {requested_sampling_interval*1000:.1f}.")
                 count_for_eval = int(period_of_time_for_moving_average / requested_sampling_interval)
-            print("actual" + str(actual_sampling_duration[j]))
             sleepval = requested_sampling_interval - actual_sampling_duration[j]
-            time.sleep(sleepval)
-    
+            time.sleep(sleepval)   
     if displayer_connected: displayer_socket.close()
     if publisher_connected: publisher_socket.close()
     common_logger.info("Exiting because of SIGINT or SIGTERM!")

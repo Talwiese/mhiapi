@@ -195,9 +195,9 @@ logging:
   version: 1
   formatters:
     standard:
-      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      format: "%(asctime)s %(module)s %(levelname)s: %(message)s"
     error:
-      format: "%(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
+      format: "%(asctime)s %(module)s %(levelname)s: %(message)s"
   handlers:
       standard_file_handler: 
         class: logging.handlers.RotatingFileHandler
@@ -207,14 +207,14 @@ logging:
         maxBytes: 1048576 # is 1MB
         backupCount: 5
         encoding: utf8
-      error_file_handler:
-        class: logging.handlers.RotatingFileHandler
-        level: ERROR
-        formatter: error
-        filename: ./log/errors.log
-        maxBytes: 1048576 # is 1MB
-        backupCount: 5
-        encoding: utf8
+      # error_file_handler:
+      #   class: logging.handlers.RotatingFileHandler
+      #   level: ERROR
+      #   formatter: error
+      #   filename: ./log/errors.log
+      #   maxBytes: 1048576 # is 1MB
+      #   backupCount: 5
+      #   encoding: utf8
   loggers:
     standard:
       level: INFO
@@ -222,5 +222,5 @@ logging:
       propagate: yes
     error:
       level: ERROR
-      handlers: [error_file_handler]
+      handlers: [standard_file_handler] # [error_file_handler] if you want two diefferent log files
       propagate: yes

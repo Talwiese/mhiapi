@@ -64,7 +64,6 @@ def main():
     temp_counter = 0
     while not (signalhandler.interrupt or signalhandler.terminate):
         temp_counter += 1
-        #print(temp_counter)
         try:                            # try max 20 times
             sock.connect(socket_path)   # timeout is set few lines before
         except Exception as e:
@@ -74,7 +73,6 @@ def main():
                 common_logger.info("Exiting, could not establish uds connection with sampler!")
                 sys.exit(1)
         else:                           # if connected (no exception) send "disp" and break this while-loop
-            # print(sock.fileno())
             sock.send("disp".encode(encoding = 'UTF-8'))
             break
     
@@ -90,7 +88,6 @@ def main():
 
     # CONFIG['activ_channels'] is a list, MhiaConfig already formatted the string in config.yaml
     active_channels = CONFIG['active_channels']     
-    print(CONFIG['active_channels'])
     display_mode = lcd.setmode(10 + active_channels[0])
     # now the main loop starts and runs till process is interrupted by signal, this while-block can still be optimized!
     timestamp = time.time()
@@ -98,9 +95,8 @@ def main():
         display_mode = lcd.getmode()        
         # try to receive and unpack struct
         try:
-            channel, timestamp, value = struct.unpack('!idd', sock.recv(20)) # remember socket is set to non-blocking, meaning we that will have here very often 'BockingIOError'
+            channel, timestamp, value = struct.unpack('!idd', sock.recv(20)) # remember socket is set to non-blocking, meaning we will have here very often 'BockingIOError'
         except Exception as e: 
-            print(e.__class__)
             display_is_laggy = False # this is necessary here to ensure that display is "refreshed" in case no data available on pipe
         else:
             current_data[channel] = [timestamp, value, True]
@@ -109,7 +105,6 @@ def main():
             
             # display_mode is a number
             if display_mode == 9:                               # mode 9 means show all channels at once in portrait orientation 
-                #print(channel)
                 lcd.show_all_channels(channel, round(value,3))  
             elif 10 < display_mode < 19:                        # mode 11 to 18 shows just one channel in landscape orientation, the second digit means which channel is shown
                 ch2bshown = display_mode - 10    
@@ -120,18 +115,15 @@ def main():
             elif display_mode == 40:                            # mode 40 shows the QR code (text set in config), should be a link to a dashboard feeded with live data using publisher
                 lcd.display_qr(qr_img)            
             else: pass # i can be 9, 11 to 18, 21 to 28 or 40, if its something else (= never) nothing shall happens     
-
             if not display_is_laggy: lcd.disp.ShowImage(lcd.img_to_show_next)
 
         finally:
-
-            
+         
             # in this block the behaviour after pushing a button is defined, that depends on current display_mode
             if buttons.any_button_pushed:
                 buttons.any_button_pushed = False
                 but = buttons.get_last_button_pushed()      # don't get confused: get_last_button_pushed means actually the "currently" pushed button, 
                 common_logger.info(f"Button pushed: {but}")
-                #print(display_mode)
                 if display_mode == 9: # mode 9 is: all channels shown as number on display in portrait orientation
                     if   but ==  "left": lcd.setmode(10 + lcd.lastShownSingleChannel)
                     elif but == "right": lcd.setmode(40)
@@ -171,7 +163,6 @@ def main():
                     if   but ==  "left": lcd.setmode(9)
                     elif but == "right": lcd.setmode(20 + channel)    
                 else: pass
-                #print(str(display_mode) + " " + str(lcd.getmode()))
                 if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message to mhia.py?
             else: pass #if no button pushed
 
@@ -180,7 +171,7 @@ def main():
     lcd.disp.clear()  
     lcd.disp.module_exit()
     common_logger.info("Display cleared, SPI closed, GPIOs reset.")
-    print("Process terminated by SIGINT or SIGTERM!")
+    common_logger.info("Exiting.")
     sys.exit(0)
 
 if __name__=="__main__":

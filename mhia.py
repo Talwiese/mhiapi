@@ -79,7 +79,8 @@ def main():
 
     # THIS NEEDS REWORK, WHAT DOES THE LOOP DO AFTER ALL PROCESSES STARTED?
     while not (signalhandler.interrupt or signalhandler.terminate):
-        time.sleep(1)
+        print("1")
+        time.sleep(0.2)
 
     common_logger.info("SIGINT or SIGTERM received! Trying to terminate subprocesses ...")
     for i in processes_started:
