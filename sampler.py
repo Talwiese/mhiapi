@@ -56,18 +56,18 @@ def main():
         else: pass
          
     #setting up the ADCPi module from ABelectronics (todo: use new selfmade lib?)
-    (chip1addr, chip2addr, bitrate, pga) = (CONFIG['chip1_address'], CONFIG['chip2_address'], CONFIG['adc_bitrate'], CONFIG['adc_gain'])
-    common_logger.info(f"ADC parameters read from config: chip1 at 0x{chip1addr:02x}, chip2 at 0x{chip2addr:02x}, bit rate = {bitrate}, gain = {pga}")
-    adc = ADCPi(chip1addr, chip2addr, bitrate)
+    (chip1addr, chip2addr, resolution, pga) = (CONFIG['chip1_address'], CONFIG['chip2_address'], CONFIG['adc_resolution'], CONFIG['adc_gain'])
+    common_logger.info(f"ADC parameters read from config: chip1 at 0x{chip1addr:02x}, chip2 at 0x{chip2addr:02x}, bit rate = {resolution}, gain = {pga}")
+    adc = ADCPi(chip1addr, chip2addr, resolution)
     common_logger.info("ADC object created, usind ABElectronics module.")
     adc.set_conversion_mode(0)
     adc.set_pga(pga)
     common_logger.info("ADC set and ready for sampling.")
 
-    # the requested sample rate for different bitrates is read from config
+    # the requested sample rate for different resolutions is read from config
     # the goal is to have almost constant time intervalls between samples, see the loop wherein capture is called
-    requested_sampling_interval = float(CONFIG['requested_sampling_interval'][bitrate]/1000)
-    common_logger.info(f"Requested sampling interval for {bitrate} bit conversion is {requested_sampling_interval*1000} ms")    
+    requested_sampling_interval = float(CONFIG['requested_sampling_interval'][resolution]/1000)
+    common_logger.info(f"Requested sampling interval for {resolution} bit conversion is {requested_sampling_interval*1000} ms")    
 
     # initialising lists with current values, timestamps; the indices represent the channel number - 1
     sample_values = [int] * 8
@@ -141,7 +141,7 @@ def main():
     # this loop calls capture continuesly, calculates the variable sleep time till next capture call and sends data to connected processes (modules)
     active_channels = CONFIG['active_channels']
     
-    common_logger.info(f"Starting capturing and sampling these channels: {active_channels}, quantizing in {bitrate} bit, will try to sample every {requested_sampling_interval * 1000} ms! ")
+    common_logger.info(f"Starting capturing and sampling these channels: {active_channels}, quantizing in {resolution} bit, will try to sample every {requested_sampling_interval * 1000} ms! ")
     
     period_of_time_for_moving_average = 60 # seconds, used for debug or info level logging. 
     average_sampling_duration = requested_sampling_interval / 2 # just a starting value, will get more precise in every iteration of the main loop
@@ -149,7 +149,7 @@ def main():
     
     struct_def = '!idd'     # over the uds connection a struct is passed that is packed, !idd stands for one int and two doubles, that is 4+8+8=20 bytes
     
-    while not (signalhandler.interrupt or signalhandler.terminate):        
+    while not (signalhandler.interrupt or signalhandler.terminate):
         for i in active_channels:
             j=i-1 # active_channels is between 1 and 8, j as index for the lists between 0 and 7, be carefull here what is i and what is j
             actual_sampling_duration[j], sample_timestamps[j], sample_values[j] = capture(adc, i)

@@ -17,20 +17,20 @@ enabled_modules:
 chip1_address: 0x68
 chip2_address: 0x6d
 
-# adc_bitrate can be 12, 14, 16 or 18
-# This is the bit rate that will be set on the ADC-chips. For now both chips will have same bit rates set.
+# adc_resolution can be 12, 14, 16 or 18 bits
+# This is the resolution that will be set on the ADC-chips. For now both chips will have same resolution set.
 # The negative quanitzation levels are neglected on the mhia pi hardware.
 # The actual bit resolution is therefore one bit less.
-adc_bitrate: 14
+adc_resolution: 14
 
-# This list sets desired sampling intervalls in milliseconds for each possible bit rate.
+# This list sets desired sampling intervalls in milliseconds for each possible resolution.
 # The values 20, 50, 100, and 333 are tested smallest sampling intervalls for the MCP3424 chips, and deliver .
 # Do not reduce these values! Higher values will most likely work without problems, lower values will probably result in unknown behaviour. 
-requested_sampling_interval: 
-  12: 20
-  14: 50
-  16: 100
-  18: 1000
+requested_sampling_interval:
+  12: 20    # 20 ms corresponds to 50 sps
+  14: 50    # 50 ms corresponds to 25 sps
+  16: 100   # 100 ms corresponds to 10 sps
+  18: 400   # 333 ms corresponds to 2.5 sps
 
 # adc_gain can be 1, 2, 4 or 8
 # The programmable gain amplification (PGA) of the MCP3424 chips. For now both chips will have the same PGA set.
