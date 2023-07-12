@@ -21,7 +21,7 @@ chip2_address: 0x6d
 # This is the resolution that will be set on the ADC-chips. For now both chips will have same resolution set.
 # The negative quanitzation levels are neglected on the mhia pi hardware.
 # The actual bit resolution is therefore one bit less.
-adc_resolution: 14
+adc_resolution: 12
 
 # This list sets desired sampling intervalls in milliseconds for each possible resolution.
 # The values 20, 50, 100, and 333 are tested smallest sampling intervalls for the MCP3424 chips, and deliver .
@@ -36,7 +36,7 @@ requested_sampling_interval:
 # The programmable gain amplification (PGA) of the MCP3424 chips. For now both chips will have the same PGA set.
 # Should be set in accordance with your sensor application's maximum output voltage and desired sensitivity.
 # An adc_gain of 1 means that the actual current voltage difference between a channels pin and GND is beeing quantized.    
-adc_gain: 1
+adc_gain: 2
 
 # There are 8 sensor channels from 1 to 8 on the mhia pi board, 
 # channels 1, 2, 3, 4 are converted on first chip,
@@ -54,15 +54,16 @@ active_channels: [1,2,3,4,5,6,7,8]
 #  - In most situations you will normally have non-zero values for '0' and '1' or for '0' and '-1' but not for all three coefficients at the same time
 channels_config:
   1:
-    description: PseudoSensor
+    description: TMP37#43
     min_voltage: 0
-    max_voltage: 5
+    max_voltage: 2
     calc:
-      unit: mV
+      unit: °C
       coefficients: # coefficients where the power of x is 1, 0 and/or -1
-        1 : 1000
+        1 : 50
         0 : 0
-        -1: 0       
+        -1: 0
+      digits_after_decimal_point: 1       
   2:
     description: not configured
     min_voltage: 0

@@ -72,7 +72,7 @@ class MhiaDisplay:
 
         #self.__connected_wifi_symbol = False
 
-        self.sens_and_calc_text = ["SENS", "CALC"]
+        self.sens_and_calc_text = ["sensor output", "calculated"]
         (self.show_calc_val, self.calc_shown_prev_time)  = (False, True) # this assignment is necessary for the beginning
 
         # prepare background image for landscape mode
@@ -155,7 +155,7 @@ class MhiaDisplay:
         start_time_of_this_call = time.time()
         # XOR, if calc wanted but sens shown last time, or if sens wanted and calc shown last time.... to clear field and update field on display
         if (self.show_calc_val ^ self.calc_shown_prev_time):    
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((56,32, 130, 59), fill=self.back_color1)   # clear
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((56, 32, 300, 65), fill=self.back_color1)   # clear
             #sens_calc_text = sens_calc_text[1] if self.show_calc_val else sens_calc_text[0]
             ImageDraw.Draw(self.landscapeOneCh).text((56, 30), self.sens_and_calc_text[int(self.show_calc_val)], font = self.font4ChannelNumber, fill = self.design_color1)
             if self.show_calc_val: self.calc_shown_prev_time = True
@@ -167,16 +167,16 @@ class MhiaDisplay:
                 self.lastShownSingleChannel = channel
             else: # whenever show_one_channel is called with same channel as previous call
                 ImageDraw.Draw(self.landscapeOneCh).text((21, 84), str(channel), font = self.font4ChannelNumber, fill = self.design_color1)
-                ImageDraw.Draw(self.landscapeOneCh).rectangle((56,60, 320, 118), fill=self.back_color1) # erase (old) value
+                ImageDraw.Draw(self.landscapeOneCh).rectangle((56, 66, 320, 118), fill=self.back_color1) # erase (old) value
                 if not self.show_calc_val:
                     text_to_show = "{:.3f}".format(value) + "V"
                 else: # here value is calculated using the coefficients from config
-                    coeffs = self.cfg.get('channels_config').get(channel).get('calc').get('coefficients')
-                    inverse_value = 1/value if value !=0 else 0 
-                    text_to_show = "{:.3f}".format(coeffs[-1]*inverse_value + coeffs[0] + coeffs[1]*value) + self.cfg.get('channels_config').get(channel).get('calc').get('unit')
+                    coeffs = self.cfg['channels_config'][channel]['calc']['coefficients']
+                    inverse_value = 1/value if value !=0 else 0 # "else" something else than 0 would be better, value near zero means inverse is a very big
+                    text_to_show = "{:.{decdigits}f}".format(coeffs[-1]*inverse_value + coeffs[0] + coeffs[1]*value, decdigits = str(self.cfg['channels_config'][channel]['calc']['digits_after_decimal_point'])) + self.cfg['channels_config'][channel]['calc']['unit']
                 ImageDraw.Draw(self.landscapeOneCh).text((56, 56), text_to_show, font = self.font4ValueLarge, fill = self.text_color)   # draw new value including Unit 
         else: # the first call of show_one_channel when changing to display mode between 10 and 19
-            text_to_show3 = "Description: " + self.cfg.get('channels_config').get(channel).get('description')
+            text_to_show3 = "Description: " + self.cfg.get['channels_config'][channel]['description']
             ImageDraw.Draw(self.landscapeOneCh).text((9, 3), text_to_show3, font = self.Font1, fill = self.text_color)
             text_to_show2 = "Sensing range: 0 to " + str(self.cfg.get('channels_config').get(channel).get('max_value')) + " " + self.cfg.get('channels_config').get(channel).get('unit')
             ImageDraw.Draw(self.landscapeOneCh).text((9, 142), text_to_show2, font = self.Font1, fill = self.text_color)        

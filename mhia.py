@@ -76,7 +76,7 @@ def main():
         processes_started.append(i)
         process_pids[i] = subpro[i].pid
         common_logger.info(process_labels[i] + " started with PID: " + str(process_pids[i]))
-
+    print(processes_started)
     # THIS NEEDS REWORK, WHAT DOES THE LOOP DO AFTER ALL PROCESSES STARTED?
     while not (signalhandler.interrupt or signalhandler.terminate):
         print("1")

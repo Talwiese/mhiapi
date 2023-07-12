@@ -80,7 +80,7 @@ def main():
 
     qr_img=qr.generate(lcd.text_color, lcd.back_color1, CONFIG['display']['qr_text'])
 
-    req_sampling_interval = float(CONFIG['requested_sampling_interval'][CONFIG['adc_bitrate']])/1000  # need this in seconds not ms
+    req_sampling_interval = float(CONFIG['requested_sampling_interval'][CONFIG['adc_resolution']])/1000  # need this in seconds not ms
     
     # At lower sampling intervals (higher samling rate) updating display is slower than sampling of the ADC chip.
     # display_is_laggy is continuesly set and evaluated in the main loop, and updating display is dropped, if display laggy.
@@ -161,7 +161,10 @@ def main():
                         else:pass  
                 elif display_mode == 40:
                     if   but ==  "left": lcd.setmode(9)
-                    elif but == "right": lcd.setmode(20 + channel)    
+                    elif but == "right": lcd.setmode(20 + channel)
+                    elif but == "center": # temporarly to allow to make "screenshots"
+                        lcd.landscapeOneCh.save("land_"+str(time.time())+".png")
+                        lcd.portraitAllCh.save("port_"+str(time.time())+".png") 
                 else: pass
                 if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message to mhia.py?
             else: pass #if no button pushed
