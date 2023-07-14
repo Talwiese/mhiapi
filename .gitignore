@@ -7,6 +7,7 @@ config.yaml
 uds_samples
 not_used/**
 test-codes/**
+screenshots/**
 # because of unclear license situation of test pics i got, i included this sub-directory
 tests/pics/*.jpg
 tests/pics/*.png 
