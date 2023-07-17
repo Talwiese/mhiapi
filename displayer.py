@@ -89,38 +89,47 @@ def main():
     # CONFIG['activ_channels'] is a list, MhiaConfig already formatted the string in config.yaml
     active_channels = CONFIG['active_channels']     
     display_mode = lcd.setmode(10 + active_channels[0])
+    ch2bshown = active_channels[0]
     # now the main loop starts and runs till process is interrupted by signal, this while-block can still be optimized!
     timestamp = time.time()
+    sleeptime = 0.01
     while not (signalhandler.interrupt or signalhandler.terminate):    
         display_mode = lcd.getmode()        
         # try to receive and unpack struct
         try:
-            channel, timestamp, value = struct.unpack('!idd', sock.recv(20)) # remember socket is set to non-blocking, meaning we will have here very often 'BockingIOError'
-        except Exception as e: 
-            display_is_laggy = False # this is necessary here to ensure that display is "refreshed" in case no data available on pipe
+            channel, timestamp, value = struct.unpack('!idd', sock.recv(20)) # remember socket is set to non-blocking, meaning we will have here very often 'BlockingIOError'
+            #print("data")
+        except Exception as e: # (remember the "try" doesn't block because socket non-blocking) when exception don't do else block but still finally block 
+            display_is_laggy = False 
         else:
-            current_data[channel] = [timestamp, value, True]
-            # The values shouldn't be displayed if displayer slower than sampler, so display is only updated when not lagging 
+            current_data[channel] = [timestamp, value, True] # here latest timestamp, value is saved for each channel. The boolean is flag to say if this channel was last sampled channel 
+            # The values shouldn't be displayed if displayer slower than sampler, so display is only refreshed when not lagging 
             display_is_laggy = True if (time.time() - timestamp) > req_sampling_interval else False # this needs maybe fine tuning (2*req_sampling_innterval or add some 0.1ms)
-            
             # display_mode is a number
-            if display_mode == 9:                               # mode 9 means show all channels at once in portrait orientation 
+            if display_mode == 9:                       # mode 9 means show all channels at once in portrait orientation 
                 lcd.show_all_channels(channel, round(value,3))  
             elif 10 < display_mode < 19:                        # mode 11 to 18 shows just one channel in landscape orientation, the second digit means which channel is shown
                 ch2bshown = display_mode - 10    
                 lcd.show_one_channel(ch2bshown,  round(current_data[ch2bshown][1],3))
             elif 20 < display_mode < 29:                        # in mode 21 to 28 the current graph of one channel is shown, the second digit means which channel
                 ch2bshown = display_mode - 20
-                lcd.show_one_graph(ch2bshown, round(current_data[ch2bshown][1],3))
+                if not current_data[ch2bshown][2]: pass         # means if value for channel user wants to see is not fresh then pass
+                else: lcd.show_one_graph(ch2bshown, round(current_data[ch2bshown][1],3))
             elif display_mode == 40:                            # mode 40 shows the QR code (text set in config), should be a link to a dashboard feeded with live data using publisher
                 lcd.display_qr(qr_img)            
             else: pass # i can be 9, 11 to 18, 21 to 28 or 40, if its something else (= never) nothing shall happens     
-            if not display_is_laggy: lcd.disp.ShowImage(lcd.img_to_show_next)
-
-        finally:
-         
+            print(current_data[ch2bshown][2])
+            current_data[channel][2]=False
+            # next line important: lcd.disp.ShowImage() takes relatively long compared to sampling at low resolution, so shall just happen if display not laggy 
+            if not display_is_laggy: 
+                lcd.disp.ShowImage(lcd.img_to_show_next)
+                print("show ")
+        
+        finally: 
             # in this block the behaviour after pushing a button is defined, that depends on current display_mode
-            if buttons.any_button_pushed:
+            if not buttons.any_button_pushed:
+                time.sleep(sleeptime)
+            else:
                 buttons.any_button_pushed = False
                 but = buttons.get_last_button_pushed()      # don't get confused: get_last_button_pushed means actually the "currently" pushed button, 
                 common_logger.info(f"Button pushed: {but}")
@@ -165,10 +174,10 @@ def main():
                     elif but == "center": # temporarly to allow to make "screenshots"
                         lcd.landscapeOneCh.save("./screenshots/land_"+str(time.time())+".png")
                         lcd.portraitAllCh.save("./screenshots/port_"+str(time.time())+".png")
-                        lcd.landscapeGraph.save("./screenshot/graph_"+str(time.time())+".png")
+                        lcd.landscapeGraph.save("./screenshots/graph_"+str(time.time())+".png")
                 else: pass
                 if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message to mhia.py?
-            else: pass #if no button pushed
+
 
     # we are now out of the while block
     common_logger.info("Exiting because of SIGINT or SIGTERM!")

@@ -76,12 +76,11 @@ def main():
         processes_started.append(i)
         process_pids[i] = subpro[i].pid
         common_logger.info(process_labels[i] + " started with PID: " + str(process_pids[i]))
-    print(processes_started)
+    #print(processes_started)
     # THIS NEEDS REWORK, WHAT DOES THE LOOP DO AFTER ALL PROCESSES STARTED?
     while not (signalhandler.interrupt or signalhandler.terminate):
-        print("1")
-        time.sleep(0.2)
-
+        time.sleep(0.5)
+    
     common_logger.info("SIGINT or SIGTERM received! Trying to terminate subprocesses ...")
     for i in processes_started:
         str_popped=processes_started.pop()

@@ -56,15 +56,15 @@ channels_config:
   1:
     id: null
     description: not configured
-    min_voltage: 0
-    max_voltage: 5
+    min_voltage: 0  # min voltage of sensors output
+    max_voltage: 5  # max voltage of sensors output
     calc:
       unit: V       # unit of the calculated value
       coefficients: # coefficients where the power of x is 1, 0 and/or -1
         1 : 0       # this is multiplied with raw sensor value
         0 : 0       # this is added to raw sensor value
         -1: 0       # this is devided by raw sensor value
-      digits_after_decimal_point: 2       # for the calculated value
+      digits_after_decimal_point: 2       # for the calculated value only
   2:
     id: null
     description: not configured
