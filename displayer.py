@@ -78,7 +78,7 @@ def main():
     
     common_logger.info("Connected to sampler...")
 
-    qr_img=qr.generate(lcd.text_color, lcd.back_color1, CONFIG['display']['qr_text'])
+    qr_img=qr.generate(lcd.text_color1, lcd.back_color1, CONFIG['display']['qr_text'])
 
     req_sampling_interval = float(CONFIG['requested_sampling_interval'][CONFIG['adc_resolution']])/1000  # need this in seconds not ms
     
@@ -98,7 +98,6 @@ def main():
         # try to receive and unpack struct
         try:
             channel, timestamp, value = struct.unpack('!idd', sock.recv(20)) # remember socket is set to non-blocking, meaning we will have here very often 'BlockingIOError'
-            #print("data")
         except Exception as e: # (remember the "try" doesn't block because socket non-blocking) when exception don't do else block but still finally block 
             display_is_laggy = False 
         else:
@@ -118,12 +117,10 @@ def main():
             elif display_mode == 40:                            # mode 40 shows the QR code (text set in config), should be a link to a dashboard feeded with live data using publisher
                 lcd.display_qr(qr_img)            
             else: pass # i can be 9, 11 to 18, 21 to 28 or 40, if its something else (= never) nothing shall happens     
-            print(current_data[ch2bshown][2])
             current_data[channel][2]=False
             # next line important: lcd.disp.ShowImage() takes relatively long compared to sampling at low resolution, so shall just happen if display not laggy 
             if not display_is_laggy: 
                 lcd.disp.ShowImage(lcd.img_to_show_next)
-                print("show ")
         
         finally: 
             # in this block the behaviour after pushing a button is defined, that depends on current display_mode
@@ -174,7 +171,8 @@ def main():
                     elif but == "center": # temporarly to allow to make "screenshots"
                         lcd.landscapeOneCh.save("./screenshots/land_"+str(time.time())+".png")
                         lcd.portraitAllCh.save("./screenshots/port_"+str(time.time())+".png")
-                        lcd.landscapeGraph.save("./screenshots/graph_"+str(time.time())+".png")
+                        for i in CONFIG['active_channels']:
+                            lcd.landscapeGraph[i].save("./screenshots/graph_"+str(time.time())+".png")
                 else: pass
                 if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message to mhia.py?
 

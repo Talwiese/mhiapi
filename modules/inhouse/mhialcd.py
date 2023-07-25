@@ -34,12 +34,13 @@ class MhiaDisplay:
         self.font4Icons = ImageFont.truetype(self.cfg['display']['fontpaths']['FontAwesomeFreeRegular'], self.cfg['display']['fontsizes']['largest'])
         
         # The next block with the tuples on the right side could be somehow moved into mhiacfg, so that the color values are already loaded as tuples here.
-        self.back_color1 = tuple(self.cfg['display']['back_color'])
+        self.back_color1 = tuple(self.cfg['display']['back_color1'])
         self.back_color2 = tuple(self.cfg['display']['back_color2'])
-        self.text_color = tuple(self.cfg['display']['text_color'])
+        self.text_color1 = tuple(self.cfg['display']['text_color1'])
+        self.text_color2 = tuple(self.cfg['display']['text_color2'])
         self.design_color1 = tuple(self.cfg['display']['design_color1'])
         self.design_color2 = tuple(self.cfg['display']['design_color2'])
-        self.text_color_less_visible = tuple(self.cfg['display']['text_color_less_visible'])
+
 
         #Creating object and initializing it using the Waveshare module
         SPI_BUS = self.cfg['display']['hw_settings']['spi_bus']
@@ -79,15 +80,16 @@ class MhiaDisplay:
 
         #self.__connected_wifi_symbol = False
 
-        self.sens_and_calc_text = ["sensor output", "calculated"]
+        self.sens_and_calc_text = ["SENS", "CALC"]
         (self.show_calc_val, self.calc_shown_prev_time)  = (False, True) # this assignment is necessary for the beginning
 
         # prepare background image for landscape mode
         self.lastShownSingleChannel = 0 # not lastShown channel but it is set to 0 (= no channel) at startup
-        ImageDraw.Draw(self.landscapeOneCh).line([(0, 30),(320, 30)], fill = self.design_color1, width = 1) # top margin
+        #ImageDraw.Draw(self.landscapeOneCh).line([(0, 30),(320, 30)], fill = self.design_color1, width = 1) # top margin
+        ImageDraw.Draw(self.landscapeOneCh).line([(0, 52),(320, 52)], fill = self.design_color1, width = 1) # second top margin
         ImageDraw.Draw(self.landscapeOneCh).line([(0, 142),(320, 142)], fill = self.design_color1, width = 1) # bottom margin
-        ImageDraw.Draw(self.landscapeOneCh).line([(50, 30),(50, 142)], fill = self.design_color1, width = 1) # left margin
-        ImageDraw.Draw(self.landscapeOneCh).text((6, 56), "CH", font = self.font4ChannelNumber, fill = self.design_color1)
+        #ImageDraw.Draw(self.landscapeOneCh).line([(66, 52),(66, 142)], fill = self.design_color1, width = 1) # left margin
+        ImageDraw.Draw(self.landscapeOneCh).text((2, 56), "CH", font = self.font4ChannelNumber, fill = self.design_color1)
 
         # prepare background for portrait mode
         for j in range(0,9):
@@ -142,8 +144,8 @@ class MhiaDisplay:
         i = channel - 1 + 1 # the first i with index 0 is for the header-info on the display
         text_to_show = "{:.3f}".format(value) + "V"
         back_color_dyn = self.back_color1 if i%2 == 1 else self.back_color2 #to have alternating backgrounds for each line (channel)
-        ImageDraw.Draw(self.portraitAllCh).rectangle((33, i*36 - 2, 172, (i+1)*36 - 4), fill=back_color_dyn) #draws an empty rectangle over the value of a channel      
-        ImageDraw.Draw(self.portraitAllCh).text((44, i*36 - 1), text_to_show, font = self.font4ValueSmall, fill = self.text_color) #draws the updated value of a channel
+        ImageDraw.Draw(self.portraitAllCh).rectangle((33, i*36 - 2, 172, (i+1)*36 - 6), fill=back_color_dyn) #draws an empty rectangle over the value of a channel      
+        ImageDraw.Draw(self.portraitAllCh).text((44, i*36 - 1), text_to_show, font = self.font4ValueSmall, fill = self.text_color1) #draws the updated value of a channel
         #self.disp.ShowImage(self.portraitAllCh)
         self.__mode = 9 # 9s stand for the mode where all channels are shown in portrait orientation
         self.img_to_show_next = self.portraitAllCh
@@ -153,47 +155,52 @@ class MhiaDisplay:
         start_time_of_this_call = time.time()
         # XOR, if calc wanted but sens shown last time, or if sens wanted and calc shown last time.... to clear field and update field on display
         if (self.show_calc_val ^ self.calc_shown_prev_time):    
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((56, 32, 300, 65), fill=self.back_color1)   # clear
-            ImageDraw.Draw(self.landscapeOneCh).text((56, 30), self.sens_and_calc_text[int(self.show_calc_val)], font = self.font4ChannelNumber, fill = self.design_color1)
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((2, 100, 65, 130), fill=self.back_color1)   # clear sens/calc
+            ImageDraw.Draw(self.landscapeOneCh).text((2, 100), self.sens_and_calc_text[int(self.show_calc_val)], font = self.font4ChannelNumber, fill = self.design_color2)
             if self.show_calc_val: self.calc_shown_prev_time = True
             else: self.calc_shown_prev_time=False
         else: pass
-        if 10 < self.__mode < 19:
-            if channel != self.lastShownSingleChannel: # means whenever changed to this channel (first frame that will be shown after changing to this channel) 
-                ImageDraw.Draw(self.landscapeOneCh).rectangle((20,92, 40, 116), fill=self.back_color1) # erase channel number
-                ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 3, 320, 22), fill=self.back_color1) # erase description
-                ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 145, 320, 171), fill=self.back_color1) # erase ranges info
-                self.lastShownSingleChannel = channel
-                text2draw = "Descr.: " + self.cfg['channels_config'][self.lastShownSingleChannel]['description']
-                ImageDraw.Draw(self.landscapeOneCh).text((9, 3), text2draw, font = self.font4Description, fill = self.text_color)
-                fivetimes_inv_gain = "{:.1f}".format(5 / float(self.cfg['adc_gain'])) 
-                text2draw = "Sensor:0-" + str(self.cfg['channels_config'][self.lastShownSingleChannel]['max_voltage']) + "V ADC:0-" + str(fivetimes_inv_gain) + "V PGA:" + str(self.cfg['adc_gain']) + "x"
-                ImageDraw.Draw(self.landscapeOneCh).text((9, 142), text2draw, font = self.font4Description, fill = self.text_color) 
-            else: # whenever show_one_channel is called with same channel as previous call
-                ImageDraw.Draw(self.landscapeOneCh).text((21, 84), str(channel), font = self.font4ChannelNumber, fill = self.design_color1)
-                ImageDraw.Draw(self.landscapeOneCh).rectangle((56, 66, 320, 118), fill=self.back_color1) # erase (old) value
-                if not self.show_calc_val:
-                    text_to_show = "{:.3f}".format(value) + "V"
-                else: # here value is calculated using the coefficients from config
-                    coeffs = self.cfg['channels_config'][channel]['calc']['coefficients']
-                    decdigits = str(self.cfg['channels_config'][channel]['calc']['digits_after_decimal_point'])
-                    unit = self.cfg['channels_config'][channel]['calc']['unit']
-                    inverse_value = 1/value if value !=0 else 0 # "else" something else than 0 would be better, value near zero means inverse is a very big
-                    text_to_show = "{:.{decdigits}f}".format(coeffs[-1]*inverse_value + coeffs[0] + coeffs[1]*value, decdigits=decdigits) + unit    # calculation(transformation) of the value happens here
-                ImageDraw.Draw(self.landscapeOneCh).text((56, 56), text_to_show, font = self.font4ValueLarge, fill = self.text_color)   # draw new value including Unit 
-        else: # the first call of show_one_channel when changing to display mode between 10 and 19
-            text_to_show3 = "Description: " + self.cfg.get['channels_config'][channel]['description']
-            ImageDraw.Draw(self.landscapeOneCh).text((9, 3), text_to_show3, font = self.Font1, fill = self.text_color)
-            text_to_show2 = "Sensing range: 0 to " + str(self.cfg.get('channels_config').get(channel).get('max_value')) + " " + self.cfg.get('channels_config').get(channel).get('unit')
-            ImageDraw.Draw(self.landscapeOneCh).text((9, 142), text_to_show2, font = self.Font1, fill = self.text_color)        
-        #self.disp.ShowImage(self.landscapeOneCh.rotate(angle=270, expand=1))
+
+        if channel != self.lastShownSingleChannel: # means whenever changed to this channel (first frame that will be shown after changing to this channel) 
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((36,56, 50, 80), fill=self.back_color1) # erase channel number
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 3, 320, 22), fill=self.back_color1) # erase description
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 145, 320, 171), fill=self.back_color1) # erase ranges info
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 18, 320, 50), fill=self.back_color1) # erase label
+            self.lastShownSingleChannel = channel
+            text2draw = "Descr.: " + self.cfg['channels_config'][self.lastShownSingleChannel]['description']
+            ImageDraw.Draw(self.landscapeOneCh).text((9, 3), text2draw, font = self.font4Description, fill = self.text_color1)
+            fivetimes_inv_gain = "{:.1f}".format(5 / float(self.cfg['adc_gain'])) 
+            text2draw = "Sensor:0-" + str(self.cfg['channels_config'][self.lastShownSingleChannel]['max_voltage']) + "V ADC:0-" + str(fivetimes_inv_gain) + "V PGA:" + str(self.cfg['adc_gain']) + "x"
+            ImageDraw.Draw(self.landscapeOneCh).text((9, 144), text2draw, font = self.font4Description, fill = self.text_color1)
+            text2draw = str(self.cfg['channels_config'][self.lastShownSingleChannel]['label'])
+            ImageDraw.Draw(self.landscapeOneCh).text((9, 18), text2draw, font = self.font4ChannelNumber, fill = self.text_color1)
+            ImageDraw.Draw(self.landscapeOneCh).text((36, 56), str(channel), font = self.font4ChannelNumber, fill = self.design_color1)
+        
+        else: # whenever last call was with same channel (just value needs to be updated)    
+            ImageDraw.Draw(self.landscapeOneCh).rectangle((74, 54, 320, 130), fill=self.back_color1) # erase (old) value
+            if not self.show_calc_val:
+                text_to_show = "{:.3f}".format(value)
+                valueAsText_parts = text_to_show.split('.')
+                #valueAsText_parts[0]="12"
+                digitsB4Point = len(valueAsText_parts[0])
+                ImageDraw.Draw(self.landscapeOneCh).text((76, 52), valueAsText_parts[0], font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
+                ImageDraw.Draw(self.landscapeOneCh).text((76 + 26, 52), ".", font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
+                ImageDraw.Draw(self.landscapeOneCh).text((76 + 26 + 26, 52), valueAsText_parts[1], font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
+                ImageDraw.Draw(self.landscapeOneCh).text((76 + 26 + 26 + 118, 52), "V", font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
+            else: # here value is calculated using the coefficients from config
+                coeffs = self.cfg['channels_config'][channel]['calc']['coefficients']
+                decdigits = str(self.cfg['channels_config'][channel]['calc']['digits_after_decimal_point'])
+                unit = str(self.cfg['channels_config'][channel]['calc']['unit'])
+                inverse_value = 1/value if value !=0 else 0 # "else" something else than 0 would be better, value near zero means inverse is a very big
+                text_to_show = "{:.{decdigits}f}".format(coeffs[-1]*inverse_value + coeffs[0] + coeffs[1]*value, decdigits=decdigits) + unit    # calculation(transformation) of the value happens here
+                ImageDraw.Draw(self.landscapeOneCh).text((70, 52), text_to_show, font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
+
         self.__mode = 10 + channel
         self.lastShownSingleChannel = channel
         self.img_to_show_next = self.landscapeOneCh.rotate(angle=270, expand=1)
         return time.time()-start_time_of_this_call
     
     def show_one_graph(self, channel, v):
-        #print("call " + str(channel))
         ch_minus_one = channel - 1
         y = int(11 + v * 30) # 11 is the the y pixel coordinate for the graphs zero line, v is the current value, max y about 11+5*30=165 
         ImageDraw.Draw(self.landscapeGraph[channel]).rectangle((11,40, 162, 281), fill=self.back_color1) # erase graph
@@ -207,7 +214,6 @@ class MhiaDisplay:
         
         for c in self.active_channels:
             ImageDraw.Draw(self.landscapeGraph[channel]).line(self.points_flat[c-1], fill=self.text_color, width=2)
-            #print("draw")
 
         ImageDraw.Draw(self.landscapeGraph[channel]).line([(41, 40),(41, 300)], fill = self.design_color2, width = 2)
         ImageDraw.Draw(self.landscapeGraph[channel]).line([(71, 40),(71, 300)], fill = self.design_color2, width = 2)

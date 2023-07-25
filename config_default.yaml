@@ -155,13 +155,20 @@ display:
   # during runtime you can toggle between calculated and raw values by pushing the "center" button
   show_calculated_values_as_default: no 
 
-  # Color settings of the display as a dictionary of lists each with three values between 0-255 for red, green and blue 
-  back_color: [200,98,98]
-  text_color: [10,56,56]
-  text_color_less_visible: [100,100,100]
-  design_color1: [115,53,53]
-  design_color2: [200,100,100]
-  back_color2: [215,108,108]
+  # Color settings of the display as a dictionary of lists each with three values between 0-255 for red, green and blue
+  # Unfortunately the used display cannot display all the possible 2^24 colors (256x256x256 is around 16.7 million)
+  # Empiricaly we could find out that:
+  # - the red channel has 1/8th of the full 8-bit range, meaning 256/8 = 32 distinct red shades [0, 8, 16, ..., 248]
+  # - the green channel has 1/4th of the full 8-bit range, meaning 256/4 = 54 distinct green shades [0, 4, 8, ..., 252]
+  # - the blue channel also 1/8th of the 8-bit range, meaning 256/8 = 32 distinct blue shades [0, 8, 16, ..., 248]
+  # resulting in max. 2^5 * 2^6 * 2^5 is around 65000 colors (not 262000 as in published datasheet of the display)
+  # you can set any 24bit RGB, but on the display [32, 4, 64] is the same color as [35, 6, 69] or [33, 7, 71] 
+  back_color: [242,238,238]
+  text_color: [12,60,60]
+  text_color_less_visible: [180,180,180]
+  design_color1: [135,110,110]
+  design_color2: [160,100,160]
+  back_color2: [230,212,212]
   
   hw_settings:  # Don't change these! Do only if you know what you're doing.
     spi_bus: 0
