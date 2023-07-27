@@ -106,21 +106,21 @@ def main():
             display_is_laggy = True if (time.time() - timestamp) > req_sampling_interval else False # this needs maybe fine tuning (2*req_sampling_innterval or add some 0.1ms)
             # display_mode is a number
             if display_mode == 9:                       # mode 9 means show all channels at once in portrait orientation 
-                lcd.show_all_channels(channel, round(value,3))  
+                lcd.draw_all_channels(channel, round(value,3))  
             elif 10 < display_mode < 19:                        # mode 11 to 18 shows just one channel in landscape orientation, the second digit means which channel is shown
                 ch2bshown = display_mode - 10    
-                lcd.show_one_channel(ch2bshown,  round(current_data[ch2bshown][1],3))
+                lcd.draw_one_channel(ch2bshown,  round(current_data[ch2bshown][1],3))
             elif 20 < display_mode < 29:                        # in mode 21 to 28 the current graph of one channel is shown, the second digit means which channel
                 ch2bshown = display_mode - 20
                 if not current_data[ch2bshown][2]: pass         # means if value for channel user wants to see is not fresh then pass
-                else: lcd.show_one_graph(ch2bshown, round(current_data[ch2bshown][1],3))
+                else: lcd.draw_one_graph(ch2bshown, round(current_data[ch2bshown][1],3))
             elif display_mode == 40:                            # mode 40 shows the QR code (text set in config), should be a link to a dashboard feeded with live data using publisher
                 lcd.display_qr(qr_img)            
             else: pass # i can be 9, 11 to 18, 21 to 28 or 40, if its something else (= never) nothing shall happens     
             current_data[channel][2]=False
-            # next line important: lcd.disp.ShowImage() takes relatively long compared to sampling at low resolution, so shall just happen if display not laggy 
+            # next line important: lcd.LCD.ShowImage() takes relatively long compared to sampling at low resolution, so shall just happen if display not laggy 
             if not display_is_laggy: 
-                lcd.disp.ShowImage(lcd.img_to_show_next)
+                lcd.LCD.ShowImage(lcd.img_to_show_next)
         
         finally: 
             # in this block the behaviour after pushing a button is defined, that depends on current display_mode
@@ -131,7 +131,7 @@ def main():
                 but = buttons.get_last_button_pushed()      # don't get confused: get_last_button_pushed means actually the "currently" pushed button, 
                 common_logger.info(f"Button pushed: {but}")
                 if display_mode == 9: # mode 9 is: all channels shown as number on display in portrait orientation
-                    if   but ==  "left": lcd.setmode(10 + lcd.lastShownSingleChannel)
+                    if   but ==  "left": lcd.setmode(10 + lcd.last_shown_single_channel)
                     elif but == "right": lcd.setmode(40)
                     else: pass  
                 elif 10 < display_mode < 19: # mode 1x is: just one channel in landscape orientation   
@@ -155,7 +155,7 @@ def main():
                     else: pass
                 elif 20 < display_mode < 29: # mode 2x is: just one cahnnel as graph
                     if   but ==  "left": lcd.setmode(40)
-                    elif but == "right": lcd.setmode(10 + lcd.lastShownSingleChannel)
+                    elif but == "right": lcd.setmode(10 + lcd.last_shown_single_channel)
                     else: #count_channels > 1:
                         j = active_channels.index(display_mode-20) # j is current index of the array active_channels from config 
                         if but ==  "down":  
@@ -179,8 +179,8 @@ def main():
 
     # we are now out of the while block
     common_logger.info("Exiting because of SIGINT or SIGTERM!")
-    lcd.disp.clear()  
-    lcd.disp.module_exit()
+    lcd.LCD.clear()  
+    lcd.LCD.module_exit()
     common_logger.info("Display cleared, SPI closed, GPIOs reset.")
     common_logger.info("Exiting.")
     sys.exit(0)

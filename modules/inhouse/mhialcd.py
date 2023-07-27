@@ -26,23 +26,8 @@ class MhiaDisplay:
         '''
         #loading config
         self.cfg = config
-        
-        self.font4Description = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['smallest'])
-        self.font4ValueSmall = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['small'])
-        self.font4ChannelNumber = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['medium'])
-        self.font4ValueLarge = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['largest'])
-        self.font4Icons = ImageFont.truetype(self.cfg['display']['fontpaths']['FontAwesomeFreeRegular'], self.cfg['display']['fontsizes']['largest'])
-        
-        # The next block with the tuples on the right side could be somehow moved into mhiacfg, so that the color values are already loaded as tuples here.
-        self.back_color1 = tuple(self.cfg['display']['back_color1'])
-        self.back_color2 = tuple(self.cfg['display']['back_color2'])
-        self.text_color1 = tuple(self.cfg['display']['text_color1'])
-        self.text_color2 = tuple(self.cfg['display']['text_color2'])
-        self.design_color1 = tuple(self.cfg['display']['design_color1'])
-        self.design_color2 = tuple(self.cfg['display']['design_color2'])
 
-
-        #Creating object and initializing it using the Waveshare module
+        #Creating the display object and initializing it using the Waveshare module
         SPI_BUS = self.cfg['display']['hw_settings']['spi_bus']
         SPI_DEVICE = self.cfg['display']['hw_settings']['spi_device']
         SPI_FREQ = self.cfg['display']['hw_settings']['spi_freq']
@@ -50,22 +35,39 @@ class MhiaDisplay:
         DC = self.cfg['display']['hw_settings']['command_pin']
         BL = self.cfg['display']['hw_settings']['backlight_pin']
         BL_FREQ = self.cfg['display']['hw_settings']['backlight_freq']
-        self.disp = LCD_1inch47.LCD_1inch47(spi=spidev.SpiDev(SPI_BUS, SPI_DEVICE),spi_freq=SPI_FREQ,rst=RST,dc=DC,bl=BL, bl_freq=BL_FREQ, i2c=None)
+        self.LCD = LCD_1inch47.LCD_1inch47(spi=spidev.SpiDev(SPI_BUS, SPI_DEVICE),spi_freq=SPI_FREQ,rst=RST,dc=DC,bl=BL, bl_freq=BL_FREQ, i2c=None)
 
-        #self.disp.bl_DutyCycle(100) # between 0 and 100, flickrs more likely at low values, would need another bcm2835 driver apparently
+        #Creating the ImageFont objects
+        self.font_regular_smallest = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['smallest'])
+        self.font_regular_small = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['small'])
+        self.font_regular_medium = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['medium'])
+        self.font_bold_medium = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProBold'], self.cfg['display']['fontsizes']['medium'])
+        self.font_regular_largest = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['largest'])
+        
+        #self.font4Icons = ImageFont.truetype(self.cfg['display']['fontpaths']['FontAwesomeFreeRegular'], self.cfg['display']['fontsizes']['largest'])
+        
+        self.em_dash_width_largest = int(self.cfg['display']['fontsizes']['largest'] * 0.6)
+
+        #PIL needs RGB values as tuples not lists, so here we build tuples out of lists 
+        self.back_color1 = tuple(self.cfg['display']['back_color1'])
+        self.back_color2 = tuple(self.cfg['display']['back_color2'])
+        self.text_color1 = tuple(self.cfg['display']['text_color1'])
+        self.text_color2 = tuple(self.cfg['display']['text_color2'])
+        self.design_color1 = tuple(self.cfg['display']['design_color1'])
+        self.design_color2 = tuple(self.cfg['display']['design_color2'])
 
         #Creating the base images to be shown on the display
-        self.portraitAllCh = Image.new("RGB", (172, 320), self.back_color1)
-        self.landscapeOneCh = Image.new("RGB", (320,172), self.back_color1)
+        self.img_multi_channel = Image.new("RGB", (172, 320), self.back_color1)
+        self.img_one_channel = Image.new("RGB", (320,172), self.back_color1)
  
         self.qr_img = Image.new("RGB", (172,320), self.back_color1)
         self.labeltmpimg = Image.new("RGB", (12,172), self.back_color1) # this is for 
         self.labeltmpimg2 = Image.new("RGB", (60,40), self.back_color1)
-        self.landscapeGraph = {}
+        self.imgs_plots = {}
         for channel in self.cfg['active_channels']:
-            self.landscapeGraph[channel] = Image.new("RGB", (172,320), self.back_color1) # this is drawn rotated from beginning, so no img.rotate needed later
+            self.imgs_plots[channel] = Image.new("RGB", (172,320), self.back_color1) # this is drawn rotated from beginning, so no img.rotate needed later
 
-        self.__mode = 11 # setting the mode of display, 11 means show channel 1 (second digit) in landscape mode (first digit) 
+        self.__mode = 11 # setting the mode of display, 11 means draw channel 1 (second digit) in landscape mode (first digit) 
 
         # this little block prepares lists to hold the points of the diagramm for each channel 
         self.lastx = [40] * 8 # last y and last x are the coordinates of the current value in graph mode, here beginning is set. 40 is vertical zero
@@ -75,7 +77,6 @@ class MhiaDisplay:
         for j in range(0,8):
             for i in range(0,240):
                 self.points_flat[j][i*2+1]=self.xs[i]
-            #(self.lasty[j], self.lastx[j]) = (11,40)  
         self.counter_for_graph = 0  
 
         #self.__connected_wifi_symbol = False
@@ -83,55 +84,50 @@ class MhiaDisplay:
         self.sens_and_calc_text = ["SENS", "CALC"]
         (self.show_calc_val, self.calc_shown_prev_time)  = (False, True) # this assignment is necessary for the beginning
 
-        # prepare background image for landscape mode
-        self.lastShownSingleChannel = 0 # not lastShown channel but it is set to 0 (= no channel) at startup
-        #ImageDraw.Draw(self.landscapeOneCh).line([(0, 30),(320, 30)], fill = self.design_color1, width = 1) # top margin
-        ImageDraw.Draw(self.landscapeOneCh).line([(0, 52),(320, 52)], fill = self.design_color1, width = 1) # second top margin
-        ImageDraw.Draw(self.landscapeOneCh).line([(0, 142),(320, 142)], fill = self.design_color1, width = 1) # bottom margin
-        #ImageDraw.Draw(self.landscapeOneCh).line([(66, 52),(66, 142)], fill = self.design_color1, width = 1) # left margin
-        ImageDraw.Draw(self.landscapeOneCh).text((2, 56), "CH", font = self.font4ChannelNumber, fill = self.design_color1)
+        # prepare background image for single channel mode
+        self.last_shown_single_channel = 0 # not lastShown channel but it is set to 0 (= no channel) at startup
+        ImageDraw.Draw(self.img_one_channel).line([(0, 52),(320, 52)], fill = self.design_color1, width = 1) # second top margin
+        ImageDraw.Draw(self.img_one_channel).line([(0, 142),(320, 142)], fill = self.design_color1, width = 1) # bottom margin
+        ImageDraw.Draw(self.img_one_channel).text((2, 56), "CH", font = self.font_regular_medium, fill = self.design_color1)
 
-        # prepare background for portrait mode
+        # prepare background for all channels mode
         for j in range(0,9):
             back_color_dyn = self.back_color1 if j%2 == 1 else self.back_color2
-            ImageDraw.Draw(self.portraitAllCh).rectangle((0, 0 + j*36 - 4, 172, (j+1)*36 - 4), fill=back_color_dyn)
+            ImageDraw.Draw(self.img_multi_channel).rectangle((0, 0 + j*36 - 4, 172, (j+1)*36 - 4), fill=back_color_dyn)
         for j in range(1,9):
-            ImageDraw.Draw(self.portraitAllCh).text((8, (j*36 - 1)), str(j), font = self.font4ValueSmall, fill = self.design_color1)
-        ImageDraw.Draw(self.portraitAllCh).line([(0, 32),(172, 32)], fill = self.design_color1, width = 2) # header border
-        ImageDraw.Draw(self.portraitAllCh).line([(32, 0),(32, 320)], fill = self.design_color1, width = 1) # channel border
+            ImageDraw.Draw(self.img_multi_channel).text((8, (j*36 - 1)), str(j), font = self.font_regular_small, fill = self.design_color1)
+        ImageDraw.Draw(self.img_multi_channel).line([(0, 32),(172, 32)], fill = self.design_color1, width = 2) # header border
+        ImageDraw.Draw(self.img_multi_channel).line([(32, 0),(32, 320)], fill = self.design_color1, width = 1) # channel border
 
-        # prepares background for graph mode
-        self.lastChannelShownOnGraph = 0
+        # prepares background for plot mode
+        self.last_shown_plot_channel = 0
         for channel in self.cfg['active_channels']:
-            ImageDraw.Draw(self.landscapeGraph[channel]).line([(9, 39),(9, 300)], fill = self.design_color1, width = 2) # zero line, time axis
-            ImageDraw.Draw(self.landscapeGraph[channel]).line([(9, 39),(161, 39)], fill = self.design_color1, width = 2) # zero line, value axis
-            #ImageDraw.Draw(self.landscapeGraph['channel']).text((292, 0), "D", font = self.font4Icons, fill = self.text_color)
+            ImageDraw.Draw(self.imgs_plots[channel]).line([(9, 39),(9, 300)], fill = self.design_color1, width = 2) # zero line, time axis
+            ImageDraw.Draw(self.imgs_plots[channel]).line([(9, 39),(161, 39)], fill = self.design_color1, width = 2) # zero line, value axis
         # next the vertical axis of the graph is drawn
             for i in range(0,5): 
-                ImageDraw.Draw(self.labeltmpimg).text((0, 152 - i*30), str(i), font = self.font4Description, fill = self.design_color1)
-            ImageDraw.Draw(self.labeltmpimg).text((0, 4), "V", font = self.font4Description, fill = self.design_color1)
-            self.landscapeGraph[channel].paste(self.labeltmpimg.rotate(angle=270, expand=1), (6,26))
+                ImageDraw.Draw(self.labeltmpimg).text((0, 152 - i*30), str(i), font = self.font_regular_smallest, fill = self.design_color1)
+            ImageDraw.Draw(self.labeltmpimg).text((0, 4), "V", font = self.font_regular_smallest, fill = self.design_color1)
+            self.imgs_plots[channel].paste(self.labeltmpimg.rotate(angle=270, expand=1), (6,26))
 
-        self.disp.Init()
-        self.disp.clear()
+        self.LCD.Init()
+        self.LCD.clear()
 
-        self.img_to_show_next = self.portraitAllCh
+        self.img_to_show_next = self.img_multi_channel
 
         self.active_channels = self.cfg['active_channels']
-
-    # def getwifi_symbol(self):
-    #     return self.__connected_wifi_symbol
-    
-    # def setwifi_symbol(self, enable_now):        
-    #     if self.__connected_wifi_symbol and not enable_now:
-    #         ImageDraw.Draw(self.landscapeOneCh).rectangle((292, 0, 320, 28 ), fill=self.back_color1)
-    #         ImageDraw.Draw(self.landscapeOneCh).text((292, 0), "F", font = self.font4Icons, fill = self.text_color_less_visible) 
-    #         self.__connected_wifi_symbol = False      
-    #     elif not self.__connected_wifi_symbol and enable_now:
-    #         ImageDraw.Draw(self.landscapeOneCh).rectangle((292, 0, 320, 28 ), fill=self.back_color1)
-    #         ImageDraw.Draw(self.landscapeOneCh).text((292, 0), "D", font = self.font4Icons, fill = self.text_color)
-    #         self.__connected_wifi_symbol = True            
-    #     else: pass
+        
+        self.pga = [int] * 9
+        self.pga_inv = [float] * 9
+        self.pga[0] = self.cfg['adc_gain']
+        self.pga_inv[0] = 1/self.pga[0]
+        for i in self.active_channels:
+            try:
+                self.pga[i] = self.cfg['channels_config'][i]['wanted_pga']
+                self.pga_inv[i] = 1/self.pga[i]
+            except KeyError: #happens when pga for channel i not defined in config, or wrong... fallback to default (global pga 'adc_gain' in config)
+                self.pga[i] = self.pga[0]
+                self.pga_inv[i] = 1/self.pga[0]
 
     def getmode(self):
         return self.__mode
@@ -139,72 +135,90 @@ class MhiaDisplay:
     def setmode(self, mode):
         self.__mode=mode
 
-    def show_all_channels(self, channel, value):
+    def draw_all_channels(self, channel, value):
         start_time_of_this_call = time.time()    
         i = channel - 1 + 1 # the first i with index 0 is for the header-info on the display
-        text_to_show = "{:.3f}".format(value) + "V"
+        text_to_draw = "{:.3f}".format(value) + "V"
         back_color_dyn = self.back_color1 if i%2 == 1 else self.back_color2 #to have alternating backgrounds for each line (channel)
-        ImageDraw.Draw(self.portraitAllCh).rectangle((33, i*36 - 2, 172, (i+1)*36 - 6), fill=back_color_dyn) #draws an empty rectangle over the value of a channel      
-        ImageDraw.Draw(self.portraitAllCh).text((44, i*36 - 1), text_to_show, font = self.font4ValueSmall, fill = self.text_color1) #draws the updated value of a channel
-        #self.disp.ShowImage(self.portraitAllCh)
+        ImageDraw.Draw(self.img_multi_channel).rectangle((33, i*36 - 2, 172, (i+1)*36 - 6), fill=back_color_dyn) #draws an empty rectangle over the value of a channel      
+        ImageDraw.Draw(self.img_multi_channel).text((44, i*36 - 1), text_to_draw, font = self.font_regular_small, fill = self.text_color1) #draws the updated value of a channel
+        #self.LCD.ShowImage(self.img_multi_channel)
         self.__mode = 9 # 9s stand for the mode where all channels are shown in portrait orientation
-        self.img_to_show_next = self.portraitAllCh
+        self.img_to_show_next = self.img_multi_channel
         return time.time()-start_time_of_this_call
     
-    def show_one_channel(self, channel, value):
+    def draw_one_channel(self, channel, value):
         start_time_of_this_call = time.time()
         # XOR, if calc wanted but sens shown last time, or if sens wanted and calc shown last time.... to clear field and update field on display
         if (self.show_calc_val ^ self.calc_shown_prev_time):    
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((2, 100, 65, 130), fill=self.back_color1)   # clear sens/calc
-            ImageDraw.Draw(self.landscapeOneCh).text((2, 100), self.sens_and_calc_text[int(self.show_calc_val)], font = self.font4ChannelNumber, fill = self.design_color2)
+            ImageDraw.Draw(self.img_one_channel).rectangle((2, 106, 67, 136), fill=self.back_color1)   # erase sens/calc
+            ImageDraw.Draw(self.img_one_channel).text((2, 106), self.sens_and_calc_text[int(self.show_calc_val)], font = self.font_regular_medium, fill = self.text_color2) # draw sens/calc
             if self.show_calc_val: self.calc_shown_prev_time = True
             else: self.calc_shown_prev_time=False
         else: pass
 
-        if channel != self.lastShownSingleChannel: # means whenever changed to this channel (first frame that will be shown after changing to this channel) 
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((36,56, 50, 80), fill=self.back_color1) # erase channel number
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 3, 320, 22), fill=self.back_color1) # erase description
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 145, 320, 171), fill=self.back_color1) # erase ranges info
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((9, 18, 320, 50), fill=self.back_color1) # erase label
-            self.lastShownSingleChannel = channel
-            text2draw = "Descr.: " + self.cfg['channels_config'][self.lastShownSingleChannel]['description']
-            ImageDraw.Draw(self.landscapeOneCh).text((9, 3), text2draw, font = self.font4Description, fill = self.text_color1)
-            fivetimes_inv_gain = "{:.1f}".format(5 / float(self.cfg['adc_gain'])) 
-            text2draw = "Sensor:0-" + str(self.cfg['channels_config'][self.lastShownSingleChannel]['max_voltage']) + "V ADC:0-" + str(fivetimes_inv_gain) + "V PGA:" + str(self.cfg['adc_gain']) + "x"
-            ImageDraw.Draw(self.landscapeOneCh).text((9, 144), text2draw, font = self.font4Description, fill = self.text_color1)
-            text2draw = str(self.cfg['channels_config'][self.lastShownSingleChannel]['label'])
-            ImageDraw.Draw(self.landscapeOneCh).text((9, 18), text2draw, font = self.font4ChannelNumber, fill = self.text_color1)
-            ImageDraw.Draw(self.landscapeOneCh).text((36, 56), str(channel), font = self.font4ChannelNumber, fill = self.design_color1)
+        if channel != self.last_shown_single_channel: # means whenever changed to this channel (first frame that will be shown after changing to this channel) 
+            ImageDraw.Draw(self.img_one_channel).rectangle((36,56, 50, 80), fill=self.back_color1)       # erase channel number
+            ImageDraw.Draw(self.img_one_channel).rectangle((9, 3, 320, 22), fill=self.back_color1)       # erase description
+            ImageDraw.Draw(self.img_one_channel).rectangle((9, 145, 320, 171), fill=self.back_color1)    # erase ranges info
+            ImageDraw.Draw(self.img_one_channel).rectangle((9, 18, 320, 50), fill=self.back_color1)      # erase label
+            self.last_shown_single_channel = channel
+            text_to_draw = "" + self.cfg['channels_config'][self.last_shown_single_channel]['description']
+            ImageDraw.Draw(self.img_one_channel).text((9, 3), text_to_draw, font = self.font_regular_smallest, fill = self.text_color1)          # draw description
+            fivetimes_inv_gain = "{:.1f}".format(5*self.pga_inv[channel]) 
+            text_to_draw = "Sensor:" + str(self.cfg['channels_config'][self.last_shown_single_channel]['min_voltage']) + "-" + str(self.cfg['channels_config'][self.last_shown_single_channel]['max_voltage']) + "V ADC:0-" + fivetimes_inv_gain + "V PGA:" + str(self.pga[channel]) + "x"
+            ImageDraw.Draw(self.img_one_channel).text((9, 146), text_to_draw, font = self.font_regular_smallest, fill = self.text_color1)        # draw ranges info
+            text_to_draw = str(self.cfg['channels_config'][self.last_shown_single_channel]['label'])
+            ImageDraw.Draw(self.img_one_channel).text((9, 18), text_to_draw, font = self.font_regular_medium, fill = self.text_color1)       # draw label
+            ImageDraw.Draw(self.img_one_channel).text((36, 56), str(channel), font = self.font_bold_medium, fill = self.design_color1) # draw channel number
         
         else: # whenever last call was with same channel (just value needs to be updated)    
-            ImageDraw.Draw(self.landscapeOneCh).rectangle((74, 54, 320, 130), fill=self.back_color1) # erase (old) value
+            ImageDraw.Draw(self.img_one_channel).rectangle((74, 54, 320, 130), fill=self.back_color1) # erase (old) value
             if not self.show_calc_val:
-                text_to_show = "{:.3f}".format(value)
-                valueAsText_parts = text_to_show.split('.')
-                #valueAsText_parts[0]="12"
-                digitsB4Point = len(valueAsText_parts[0])
-                ImageDraw.Draw(self.landscapeOneCh).text((76, 52), valueAsText_parts[0], font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
-                ImageDraw.Draw(self.landscapeOneCh).text((76 + 26, 52), ".", font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
-                ImageDraw.Draw(self.landscapeOneCh).text((76 + 26 + 26, 52), valueAsText_parts[1], font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
-                ImageDraw.Draw(self.landscapeOneCh).text((76 + 26 + 26 + 118, 52), "V", font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
+                text_to_draw = "{:.3f}".format(value)
+                valueAsText_parts = text_to_draw.split('.')
+                ImageDraw.Draw(self.img_one_channel).text((76, 52), valueAsText_parts[0], font = self.font_regular_largest, fill = self.text_color1)              # draw digit before decimal point 
+                ImageDraw.Draw(self.img_one_channel).text((76 + self.em_dash_width_largest - 12, 52), ".", font = self.font_regular_largest, fill = self.text_color1)                          # draw decimal point
+                ImageDraw.Draw(self.img_one_channel).text((76 + 2*(self.em_dash_width_largest - 12), 52), valueAsText_parts[1] + "V", font = self.font_regular_largest, fill = self.text_color1)    # draw digits after decimal point and also unit
+
+                # #next lines are commented, can help alignment of the decimal dot when you change the font and want to adjust the code
+                # ImageDraw.Draw(self.img_one_channel).line([(0, 52),(320, 52)], fill = self.design_color1, width = 1) 
+                # ImageDraw.Draw(self.img_one_channel).line([(0, 52+68),(320, 52+68)], fill = self.design_color1, width = 1) 
+                # for i in range(0,7):
+                #     if i>1: i = i-0.55
+                #     ImageDraw.Draw(self.img_one_channel).line([(76 + (i*self.em_dash_width_largest), 52),(76+ (i*self.em_dash_width_largest), 52+68)], fill = self.design_color1, width = 1)
+            
             else: # here value is calculated using the coefficients from config
                 coeffs = self.cfg['channels_config'][channel]['calc']['coefficients']
-                decdigits = str(self.cfg['channels_config'][channel]['calc']['digits_after_decimal_point'])
+                decdigits = self.cfg['channels_config'][channel]['calc']['digits_after_decimal_point']
                 unit = str(self.cfg['channels_config'][channel]['calc']['unit'])
-                inverse_value = 1/value if value !=0 else 0 # "else" something else than 0 would be better, value near zero means inverse is a very big
-                text_to_show = "{:.{decdigits}f}".format(coeffs[-1]*inverse_value + coeffs[0] + coeffs[1]*value, decdigits=decdigits) + unit    # calculation(transformation) of the value happens here
-                ImageDraw.Draw(self.landscapeOneCh).text((70, 52), text_to_show, font = self.font4ValueLarge, fill = self.text_color1)   # draw new value including Unit 
+                inverse_value = 1/value if value !=0 else 1000000 # "else" a relatively big number, value near zero means inverse is very large number. Smallest sampled value can be 4.77*10^(-6)V after 8x gain. Inverse of it is around 200k: a million is here a big number
+                text_to_draw = "{:.{decdigits}f}".format(coeffs[-1]*inverse_value + coeffs[0] + coeffs[1]*value, decdigits=str(decdigits))    # calculation(transformation) of the value happens here
+                valueAsText_parts = text_to_draw.split('.')
+                digits_before_decimal = len(valueAsText_parts[0])
+                pixels_before_decimal =  digits_before_decimal*self.em_dash_width_largest              
+                ImageDraw.Draw(self.img_one_channel).text((76, 52), valueAsText_parts[0], font = self.font_regular_largest, fill = self.text_color1)              # draw digits before decimal point 
+                ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12, 52), ".", font = self.font_regular_largest, fill = self.text_color1)                          # draw decimal point
+                ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12 + self.em_dash_width_largest - 12, 52), valueAsText_parts[1], font = self.font_regular_largest, fill = self.text_color1)    # draw digits after decimal point 
+                ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12 + 2* self.em_dash_width_largest - 12, 52), unit, font = self.font_regular_largest, fill = self.text_color1)               # draw unit
+                
+                #next lines are commented, can help alignment of the decimal dot when you change the font and want to adjust the code
+                # ImageDraw.Draw(self.img_one_channel).line([(0, 52),(320, 52)], fill = self.design_color1, width = 1) 
+                # ImageDraw.Draw(self.img_one_channel).line([(0, 52+68),(320, 52+68)], fill = self.design_color1, width = 1)          
+                # for i in range(0,7):
+                #     if i>digits_before_decimal: i = i-0.55
+                #     ImageDraw.Draw(self.img_one_channel).line([(76 + (i*self.em_dash_width_largest), 52),(76+ (i*self.em_dash_width_largest), 52+68)], fill = self.design_color1, width = 1)
 
         self.__mode = 10 + channel
-        self.lastShownSingleChannel = channel
-        self.img_to_show_next = self.landscapeOneCh.rotate(angle=270, expand=1)
+        self.last_shown_single_channel = channel
+        self.img_to_show_next = self.img_one_channel.rotate(angle=270, expand=1)
         return time.time()-start_time_of_this_call
     
-    def show_one_graph(self, channel, v):
+    def draw_one_graph(self, channel, value):
         ch_minus_one = channel - 1
-        y = int(11 + v * 30) # 11 is the the y pixel coordinate for the graphs zero line, v is the current value, max y about 11+5*30=165 
-        ImageDraw.Draw(self.landscapeGraph[channel]).rectangle((11,40, 162, 281), fill=self.back_color1) # erase graph
-        if self.lastChannelShownOnGraph == channel:
+        y = int(11 + value * 30) # 11 is the the y pixel coordinate for the graphs zero line, v is the current value, max y about 11+5*30=165 
+        ImageDraw.Draw(self.imgs_plots[channel]).rectangle((11,40, 162, 281), fill=self.back_color1) # erase plot
+        if self.last_shown_plot_channel == channel:
             for i in range(0,480-2,2):
                 self.points_flat[ch_minus_one][i]=self.points_flat[ch_minus_one][i+2]
         else:
@@ -212,38 +226,24 @@ class MhiaDisplay:
                 self.points_flat[ch_minus_one][i] = 11  # resets points_flat y values to 11, 
         self.points_flat[ch_minus_one][478] = y                
         
+        #draw the plot for channel
         for c in self.active_channels:
-            ImageDraw.Draw(self.landscapeGraph[channel]).line(self.points_flat[c-1], fill=self.text_color, width=2)
+            ImageDraw.Draw(self.imgs_plots[channel]).line(self.points_flat[c-1], fill=self.text_color1, width=2)
 
-        ImageDraw.Draw(self.landscapeGraph[channel]).line([(41, 40),(41, 300)], fill = self.design_color2, width = 2)
-        ImageDraw.Draw(self.landscapeGraph[channel]).line([(71, 40),(71, 300)], fill = self.design_color2, width = 2)
-        ImageDraw.Draw(self.landscapeGraph[channel]).line([(101, 40),(101, 300)], fill = self.design_color2, width = 2)
-        ImageDraw.Draw(self.landscapeGraph[channel]).line([(131, 40),(131, 300)], fill = self.design_color2, width = 2)
-        ImageDraw.Draw(self.landscapeGraph[channel]).line([(161, 40),(161, 300)], fill = self.design_color2, width = 2)
+        #horizontal lines
+        for i in range(0,5):
+            ImageDraw.Draw(self.imgs_plots[channel]).line([(41 + i*30, 40),(41 + i*30, 300)], fill = self.design_color2, width = 1)
+
+        #draw little box on top right corner with channel and current numeric value
         ImageDraw.Draw(self.labeltmpimg2).rectangle((0,0,60,40), fill=self.back_color1)
-        ImageDraw.Draw(self.labeltmpimg2).multiline_text((0,0), " CH " + str(channel) + "\n" + str(v), fill=self.text_color, font=self.font4Description)
-        self.landscapeGraph[channel].paste(self.labeltmpimg2.rotate(angle=270, expand=1), (120,250))
-        self.lastChannelShownOnGraph = channel
-        self.img_to_show_next=self.landscapeGraph[channel]
-
-    def wifi_symbol(self, enabled):
-        symb_to_show = "D" if enabled else "F"
-        img = Image.new("RGB", (28,28), self.back_color1)
-        ImageDraw.Draw(img).text((0, 0), symb_to_show, font = self.Font5, fill = self.text_color)
-        self.landscapeOneCh.paste(img, (290, 0))
-        #self.disp.ShowImage(self.landscapeOneCh.rotate(angle=270, expand=1))
-
-    def blink(self, enabled):
-        symb_to_show = "•"
-        img = Image.new("RGB", (28,28), self.back_color1)
-        ImageDraw.Draw(img).text((0, 0), symb_to_show, font = self.Font, fill = self.text_color)
-        self.landscapeOneCh.paste(img, (260, 0))
-        self.disp.ShowImage(self.landscapeOneCh.rotate(angle=270, expand=1))
-        img = Image.new("RGB", (28,28), self.back_color1)
-        self.landscapeOneCh.paste(img, (260, 0))
+        ImageDraw.Draw(self.labeltmpimg2).multiline_text((0,0), " CH " + str(channel) + "\n" + str(value), fill=self.text_color1, font=self.font_regular_smallest)
+        self.imgs_plots[channel].paste(self.labeltmpimg2.rotate(angle=270, expand=1), (120,250))
+        
+        self.last_shown_plot_channel = channel
+        self.img_to_show_next=self.imgs_plots[channel]
 
     def display_qr(self, img):
-        #self.disp.clear()
+        #self.LCD.clear()
         self.qr_img = Image.new("RGB", (172,320), self.back_color1)
         self.qr_img.paste(img, (0,0))
         self.img_to_show_next=self.qr_img

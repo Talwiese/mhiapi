@@ -32,8 +32,9 @@ error_logger = logging.getLogger("error")
 
 common_logger.info("Starting sampler...")
 
-def capture(adc, channel):
+def capture(adc, channel, pga):
     timestamp = time.time()
+    adc.set_pga(pga)
     value = adc.read_voltage(channel)      # for raw binary value = adc.read_raw(channel) for voltage (calculated by ADCPi lib) adc.read_voltage(channel)
     duration = time.time() - timestamp
     return duration, timestamp, value
@@ -54,14 +55,29 @@ def main():
             common_logger.info("Exiting.")
             sys.exit(1)
         else: pass
-         
-    #setting up the ADCPi module from ABelectronics (todo: use new selfmade lib?)
-    (chip1addr, chip2addr, resolution, pga) = (CONFIG['chip1_address'], CONFIG['chip2_address'], CONFIG['adc_resolution'], CONFIG['adc_gain'])
-    common_logger.info(f"ADC parameters read from config: chip1 at 0x{chip1addr:02x}, chip2 at 0x{chip2addr:02x}, bit rate = {resolution}, gain = {pga}")
+    
+    pga = [int] * 9  
+    
+    #setting up the ADCPi module from ABelectronics (todo: use new selfmade lib at some point?)
+    chip1addr, chip2addr, active_channels, resolution, pga[0] = CONFIG['chip1_address'], CONFIG['chip2_address'], CONFIG['active_channels'], CONFIG['adc_resolution'], CONFIG['adc_gain']
+    #setting channel specific PGA, pga[0] is the default value, it is applied if no "wanted_pga" included in config of channel
+    for i in active_channels:
+        try:
+            pga[i] = CONFIG['channels_config'][i]['wanted_pga']
+        except KeyError:
+            pga[i] = pga[0]
+    
+    common_logger.info(f"ADC parameters read from config: chip1 at 0x{chip1addr:02x}, chip2 at 0x{chip2addr:02x}, resolution = {resolution}bit")
+    
     adc = ADCPi(chip1addr, chip2addr, resolution)
     common_logger.info("ADC object created, usind ABElectronics module.")
-    adc.set_conversion_mode(0)
-    adc.set_pga(pga)
+    
+    adc.set_conversion_mode(0) # meaning that the ADC will convert in single shot mode, this programm triggers each and every shot
+    
+    pga_time = time.time()
+    #adc.set_pga(pga)
+    pga_time = pga_time - time.time()
+    print(pga_time)
     common_logger.info("ADC set and ready for sampling.")
 
     # the requested sample rate for different resolutions is read from config
@@ -82,7 +98,7 @@ def main():
     common_logger.info("Config wants publisher.") if publisher_wanted else None
     storer_wanted = True if CONFIG['enabled_modules']['storer'] else False
     common_logger.info("Config wants storer.") if storer_wanted else None
-    (displayer_connected, publisher_connected, storer_connected) = (False, False, False)
+    displayer_connected, publisher_connected, storer_connected = False, False, False
     
     tempstr = ""
 
@@ -138,8 +154,8 @@ def main():
     if displayer_connected: displayer_socket.setblocking(False)
     if publisher_connected: publisher_socket.setblocking(False)
 
-    # this loop calls capture continuesly, calculates the variable sleep time till next capture call and sends data to connected processes (modules)
-    active_channels = CONFIG['active_channels']
+
+
     
     common_logger.info(f"Starting capturing and sampling these channels: {active_channels}, quantizing in {resolution} bit, will try to sample every {requested_sampling_interval * 1000} ms! ")
     
@@ -149,10 +165,11 @@ def main():
     
     struct_def = '!idd'     # over the uds connection a struct is passed that is packed, !idd stands for one int and two doubles, that is 4+8+8=20 bytes
     
+    # this loop calls capture continuesly, calculates the variable sleep time till next capture call and sends data to connected processes    
     while not (signalhandler.interrupt or signalhandler.terminate):
         for i in active_channels:
             j=i-1 # active_channels is between 1 and 8, j as index for the lists between 0 and 7, be carefull here what is i and what is j
-            actual_sampling_duration[j], sample_timestamps[j], sample_values[j] = capture(adc, i)
+            actual_sampling_duration[j], sample_timestamps[j], sample_values[j] = capture(adc, i, pga[i])
             data2send = bytearray(struct.pack(struct_def, i, sample_timestamps[j],sample_values[j]))
             try:
                 if displayer_connected: displayer_socket.send(data2send)
