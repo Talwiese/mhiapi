@@ -169,10 +169,10 @@ def main():
                     if   but ==  "left": lcd.setmode(9)
                     elif but == "right": lcd.setmode(20 + channel)
                     elif but == "center": # temporarly to allow to make "screenshots"
-                        lcd.landscapeOneCh.save("./screenshots/land_"+str(time.time())+".png")
-                        lcd.portraitAllCh.save("./screenshots/port_"+str(time.time())+".png")
+                        lcd.img_one_channel.save("./screenshots/land_"+str(time.time())+".png")
+                        lcd.img_multi_channel.save("./screenshots/port_"+str(time.time())+".png")
                         for i in CONFIG['active_channels']:
-                            lcd.landscapeGraph[i].save("./screenshots/graph_"+str(time.time())+".png")
+                            lcd.imgs_plots[i].save("./screenshots/graph_"+str(time.time())+".png")
                 else: pass
                 if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message to mhia.py?
 

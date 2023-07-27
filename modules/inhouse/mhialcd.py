@@ -61,8 +61,8 @@ class MhiaDisplay:
         self.img_one_channel = Image.new("RGB", (320,172), self.back_color1)
  
         self.qr_img = Image.new("RGB", (172,320), self.back_color1)
-        self.labeltmpimg = Image.new("RGB", (12,172), self.back_color1) # this is for 
-        self.labeltmpimg2 = Image.new("RGB", (60,40), self.back_color1)
+        self.labeltmpimg = Image.new("RGB", (42,172), self.back_color1) # this is a temp img for pasting vertical axis label on plots
+        self.labeltmpimg2 = Image.new("RGB", (60,40), self.back_color1) # this is a temp img for pasting little box on right top of the plot
         self.imgs_plots = {}
         for channel in self.cfg['active_channels']:
             self.imgs_plots[channel] = Image.new("RGB", (172,320), self.back_color1) # this is drawn rotated from beginning, so no img.rotate needed later
@@ -100,15 +100,11 @@ class MhiaDisplay:
         ImageDraw.Draw(self.img_multi_channel).line([(32, 0),(32, 320)], fill = self.design_color1, width = 1) # channel border
 
         # prepares background for plot mode
-        self.last_shown_plot_channel = 0
+        self.last_drawn_plot_channel = 0
         for channel in self.cfg['active_channels']:
-            ImageDraw.Draw(self.imgs_plots[channel]).line([(9, 39),(9, 300)], fill = self.design_color1, width = 2) # zero line, time axis
-            ImageDraw.Draw(self.imgs_plots[channel]).line([(9, 39),(161, 39)], fill = self.design_color1, width = 2) # zero line, value axis
-        # next the vertical axis of the graph is drawn
-            for i in range(0,5): 
-                ImageDraw.Draw(self.labeltmpimg).text((0, 152 - i*30), str(i), font = self.font_regular_smallest, fill = self.design_color1)
-            ImageDraw.Draw(self.labeltmpimg).text((0, 4), "V", font = self.font_regular_smallest, fill = self.design_color1)
-            self.imgs_plots[channel].paste(self.labeltmpimg.rotate(angle=270, expand=1), (6,26))
+            #ImageDraw.Draw(self.imgs_plots[channel]).line([(9, 39),(9, 300)], fill = self.design_color1, width = 2) # zero line, time axis
+            ImageDraw.Draw(self.labeltmpimg).text((22, 8), "V", font = self.font_regular_smallest, fill = self.text_color2)
+            self.imgs_plots[channel].paste(self.labeltmpimg.rotate(angle=270, expand=1), (6,-1))
 
         self.LCD.Init()
         self.LCD.clear()
@@ -128,6 +124,7 @@ class MhiaDisplay:
             except KeyError: #happens when pga for channel i not defined in config, or wrong... fallback to default (global pga 'adc_gain' in config)
                 self.pga[i] = self.pga[0]
                 self.pga_inv[i] = 1/self.pga[0]
+        print(self.pga, 5*self.pga_inv[8])
 
     def getmode(self):
         return self.__mode
@@ -158,7 +155,7 @@ class MhiaDisplay:
         else: pass
 
         if channel != self.last_shown_single_channel: # means whenever changed to this channel (first frame that will be shown after changing to this channel) 
-            ImageDraw.Draw(self.img_one_channel).rectangle((36,56, 50, 80), fill=self.back_color1)       # erase channel number
+            ImageDraw.Draw(self.img_one_channel).rectangle((36, 56, 52, 86), fill=self.back_color1)       # erase channel number
             ImageDraw.Draw(self.img_one_channel).rectangle((9, 3, 320, 22), fill=self.back_color1)       # erase description
             ImageDraw.Draw(self.img_one_channel).rectangle((9, 145, 320, 171), fill=self.back_color1)    # erase ranges info
             ImageDraw.Draw(self.img_one_channel).rectangle((9, 18, 320, 50), fill=self.back_color1)      # erase label
@@ -216,30 +213,36 @@ class MhiaDisplay:
     
     def draw_one_graph(self, channel, value):
         ch_minus_one = channel - 1
-        y = int(11 + value * 30) # 11 is the the y pixel coordinate for the graphs zero line, v is the current value, max y about 11+5*30=165 
-        ImageDraw.Draw(self.imgs_plots[channel]).rectangle((11,40, 162, 281), fill=self.back_color1) # erase plot
-        if self.last_shown_plot_channel == channel:
+        y = int(11 + value * self.pga[channel] * 30) # 11 is the the y pixel coordinate for the graphs zero line, v is the current value, max y about 11+5*30=165 
+        ImageDraw.Draw(self.imgs_plots[channel]).rectangle((6,39, 164, 281), fill=self.back_color1) # erase plot
+        
+        if self.last_drawn_plot_channel == channel:
             for i in range(0,480-2,2):
                 self.points_flat[ch_minus_one][i]=self.points_flat[ch_minus_one][i+2]
         else:
             for i in range(0,480-2,2):
-                self.points_flat[ch_minus_one][i] = 11  # resets points_flat y values to 11, 
+                self.points_flat[ch_minus_one][i] = 11  # resets points_flat y values to 11
+            ImageDraw.Draw(self.labeltmpimg).rectangle((0, 32, 42, 172), fill=self.back_color1)
+            for i in range(0,5): 
+                ImageDraw.Draw(self.labeltmpimg).text((0, 152 - i*30), "{:.2f}".format(i*self.pga_inv[channel]), font = self.font_regular_smallest, fill = self.text_color2)
+            self.imgs_plots[channel].paste(self.labeltmpimg.rotate(angle=270, expand=1), (6, 0))
+
         self.points_flat[ch_minus_one][478] = y                
         
         #draw the plot for channel
         for c in self.active_channels:
             ImageDraw.Draw(self.imgs_plots[channel]).line(self.points_flat[c-1], fill=self.text_color1, width=2)
 
-        #horizontal lines
-        for i in range(0,5):
-            ImageDraw.Draw(self.imgs_plots[channel]).line([(41 + i*30, 40),(41 + i*30, 300)], fill = self.design_color2, width = 1)
-
-        #draw little box on top right corner with channel and current numeric value
-        ImageDraw.Draw(self.labeltmpimg2).rectangle((0,0,60,40), fill=self.back_color1)
-        ImageDraw.Draw(self.labeltmpimg2).multiline_text((0,0), " CH " + str(channel) + "\n" + str(value), fill=self.text_color1, font=self.font_regular_smallest)
-        self.imgs_plots[channel].paste(self.labeltmpimg2.rotate(angle=270, expand=1), (120,250))
+        #horizontal lines and pga adjusted labels for vertical axis (5 horizontal lines will also be drawn)
+        for i in range(0,6): 
+            ImageDraw.Draw(self.imgs_plots[channel]).line([(11 + i*30, 40),(11 + i*30, 300)], fill = self.design_color2, width = 1)
         
-        self.last_shown_plot_channel = channel
+        #draw and paste little box on top right corner with channel and current numeric value
+        ImageDraw.Draw(self.labeltmpimg2).rectangle((0,0,60,40), fill=self.back_color1)
+        ImageDraw.Draw(self.labeltmpimg2).multiline_text((0,0), " CH " + str(channel) + "\n" + str(value), fill = self.text_color1, font=self.font_regular_smallest)
+        self.imgs_plots[channel].paste(self.labeltmpimg2.rotate(angle=270, expand=1), (120,260))
+        
+        self.last_drawn_plot_channel = channel
         self.img_to_show_next=self.imgs_plots[channel]
 
     def display_qr(self, img):
