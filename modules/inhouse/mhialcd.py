@@ -158,7 +158,7 @@ class MhiaDisplay:
             ImageDraw.Draw(self.img_one_channel).rectangle((36, 56, 52, 86), fill=self.back_color1)       # erase channel number
             ImageDraw.Draw(self.img_one_channel).rectangle((9, 3, 320, 22), fill=self.back_color1)       # erase description
             ImageDraw.Draw(self.img_one_channel).rectangle((9, 145, 320, 171), fill=self.back_color1)    # erase ranges info
-            ImageDraw.Draw(self.img_one_channel).rectangle((9, 18, 320, 50), fill=self.back_color1)      # erase label
+            ImageDraw.Draw(self.img_one_channel).rectangle((9, 18, 320, 51), fill=self.back_color1)      # erase label
             self.last_shown_single_channel = channel
             text_to_draw = "" + self.cfg['channels_config'][self.last_shown_single_channel]['description']
             ImageDraw.Draw(self.img_one_channel).text((9, 3), text_to_draw, font = self.font_regular_smallest, fill = self.text_color1)          # draw description
@@ -191,20 +191,26 @@ class MhiaDisplay:
                 unit = str(self.cfg['channels_config'][channel]['calc']['unit'])
                 inverse_value = 1/value if value !=0 else 1000000 # "else" a relatively big number, value near zero means inverse is very large number. Smallest sampled value can be 4.77*10^(-6)V after 8x gain. Inverse of it is around 200k: a million is here a big number
                 text_to_draw = "{:.{decdigits}f}".format(coeffs[-1]*inverse_value + coeffs[0] + coeffs[1]*value, decdigits=str(decdigits))    # calculation(transformation) of the value happens here
-                valueAsText_parts = text_to_draw.split('.')
-                digits_before_decimal = len(valueAsText_parts[0])
-                pixels_before_decimal =  digits_before_decimal*self.em_dash_width_largest              
-                ImageDraw.Draw(self.img_one_channel).text((76, 52), valueAsText_parts[0], font = self.font_regular_largest, fill = self.text_color1)              # draw digits before decimal point 
-                ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12, 52), ".", font = self.font_regular_largest, fill = self.text_color1)                          # draw decimal point
-                ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12 + self.em_dash_width_largest - 12, 52), valueAsText_parts[1], font = self.font_regular_largest, fill = self.text_color1)    # draw digits after decimal point 
-                ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12 + 2* self.em_dash_width_largest - 12, 52), unit, font = self.font_regular_largest, fill = self.text_color1)               # draw unit
-                
-                #next lines are commented, can help alignment of the decimal dot when you change the font and want to adjust the code
-                # ImageDraw.Draw(self.img_one_channel).line([(0, 52),(320, 52)], fill = self.design_color1, width = 1) 
-                # ImageDraw.Draw(self.img_one_channel).line([(0, 52+68),(320, 52+68)], fill = self.design_color1, width = 1)          
-                # for i in range(0,7):
-                #     if i>digits_before_decimal: i = i-0.55
-                #     ImageDraw.Draw(self.img_one_channel).line([(76 + (i*self.em_dash_width_largest), 52),(76+ (i*self.em_dash_width_largest), 52+68)], fill = self.design_color1, width = 1)
+                if "." in text_to_draw:
+                    valueAsText_parts = text_to_draw.split('.')
+                    digits_before_decimal = len(valueAsText_parts[0])
+                    pixels_before_decimal =  digits_before_decimal*self.em_dash_width_largest              
+                    ImageDraw.Draw(self.img_one_channel).text((76, 52), valueAsText_parts[0], font = self.font_regular_largest, fill = self.text_color1)              # draw digits before decimal point 
+                    ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12, 52), ".", font = self.font_regular_largest, fill = self.text_color1)                          # draw decimal point
+                    ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12 + self.em_dash_width_largest - 12, 52), valueAsText_parts[1], font = self.font_regular_largest, fill = self.text_color1)    # draw digits after decimal point 
+                    ImageDraw.Draw(self.img_one_channel).text((76 + pixels_before_decimal - 12 + (decdigits + 1)*self.em_dash_width_largest - 12, 52), unit, font = self.font_regular_largest, fill = self.text_color1)               # draw unit
+
+                    #next lines are commented, can help alignment of the decimal dot when you change the font and want to adjust the code
+                    # ImageDraw.Draw(self.img_one_channel).line([(0, 52),(320, 52)], fill = self.design_color1, width = 1) 
+                    # ImageDraw.Draw(self.img_one_channel).line([(0, 52+68),(320, 52+68)], fill = self.design_color1, width = 1)          
+                    # for i in range(0,7):
+                    #     if i>digits_before_decimal: i = i-0.55
+                    #     ImageDraw.Draw(self.img_one_channel).line([(76 + (i*self.em_dash_width_largest), 52),(76+ (i*self.em_dash_width_largest), 52+68)], fill = self.design_color1, width = 1)
+
+                else:
+                    ImageDraw.Draw(self.img_one_channel).text((76, 52), text_to_draw, font = self.font_regular_largest, fill = self.text_color1)
+                    ImageDraw.Draw(self.img_one_channel).text((76 + len(text_to_draw)*self.em_dash_width_largest, 52), unit, font = self.font_regular_largest, fill = self.text_color1)
+
 
         self.__mode = 10 + channel
         self.last_shown_single_channel = channel
