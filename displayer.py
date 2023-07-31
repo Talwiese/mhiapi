@@ -78,7 +78,19 @@ def main():
     
     common_logger.info("Connected to sampler...")
 
+    #Preperations for QR and info screen
     qr_img=qr.generate(lcd.text_color1, lcd.back_color1, CONFIG['display']['qr_text'])
+    
+    # info_dict = {
+    #     'hostname': os.system("hostname"),
+    #     'ipv4': os.system("hostname -i"),
+    #     'active_cahnnels':CONFIG['active_channels'],
+    #     'resolution':
+    #     'publisher':{
+    #         'enabled':
+    #         'connected':
+    #     }
+    # }
 
     req_sampling_interval = float(CONFIG['requested_sampling_interval'][CONFIG['adc_resolution']])/1000  # need this in seconds not ms
     
