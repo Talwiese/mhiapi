@@ -17,7 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os, sys, time, struct, socket, logging, logging.config
+import os, sys, time, struct, socket, logging, logging.config, subprocess, json
 
 from modules.inhouse.mhiabuttons import MhiaButtons 
 from modules.inhouse.mhialcd import MhiaDisplay
@@ -39,7 +39,7 @@ def main():
     Main Function of displayer: UI of the device
     """     
     common_logger.info(f"Config loaded from {CONFIG_PATH}.") 
-    
+
     lcd = MhiaDisplay(CONFIG)
     qr = MhiaQR()
     
@@ -56,12 +56,55 @@ def main():
     count_channels = len(CONFIG['active_channels'])
     common_logger.info(f"{count_channels} channels are set active, and these are {CONFIG['active_channels']}." )
 
+    #Preperations for QR and info screen
+    qr_img=qr.generate(lcd.text_color1, lcd.back_color1, CONFIG['display']['qr_text'])
+    
+    ip_json_output = json.loads(subprocess.run(["ip", "-4", "-j", "address"], capture_output=True, text=True).stdout)
+    for ip_entry in ip_json_output:
+        if ip_entry['ifname']=="wlan0": break # need to put ifname in config
+    hostname = subprocess.run(["hostname"], capture_output=True, text=True).stdout.strip()
+
+    # info_dict = {
+    #     'hostname': hostname,
+    #     'ipv4': ip_entry['addr_info'][0]['local'],
+    #     'active_cahnnels': CONFIG['active_channels'],
+    #     'resolution': CONFIG['adc_resolution'],
+    #     'publisher':{
+    #         'enabled': True if CONFIG['enabled_modules']['publisher'] else False,
+    #         'connected': 0,
+    #         'mqtt_broker': CONFIG['publisher']['broker_host'] + ":" + str(CONFIG['publisher']['broker_port']),
+    #         'topic': CONFIG['publisher']['topic']
+    #         },
+    #     'default_qr_text': CONFIG['display']['qr_text'],
+    #     'qr_title': "Dashboard"
+    # }
+    
+    info_pages = {
+        '1':{
+            'hostname': hostname,
+            'ipv4': ip_entry['addr_info'][0]['local']
+        },
+        '2':{
+            'active_cahnnels': CONFIG['active_channels'],
+            'resolution': CONFIG['adc_resolution'],
+            'requested_sampling_interval': CONFIG['requested_sampling_interval'][CONFIG['adc_resolution']],
+        },
+        '3':{
+            'publisher_enabled': True if CONFIG['enabled_modules']['publisher'] else False,
+            'connected_to_broker': 0,
+            'mqtt_broker': CONFIG['publisher']['broker_host'] + ":" + str(CONFIG['publisher']['broker_port']),
+            'topic': CONFIG['publisher']['topic']
+        }
+    }
+    info_page_nr = 1
+
     # creating a unix domain socket connection to uds_samples that was bound by the sampler process
     # after connection established this sends "disp" over the socket to identify itself as the displayer process
     socket_path = "./uds_samples"
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.setblocking(False)    
     temp_counter = 0
+    
     while not (signalhandler.interrupt or signalhandler.terminate):
         temp_counter += 1
         try:                            # try max 20 times
@@ -77,21 +120,6 @@ def main():
             break
     
     common_logger.info("Connected to sampler...")
-
-    #Preperations for QR and info screen
-    qr_img=qr.generate(lcd.text_color1, lcd.back_color1, CONFIG['display']['qr_text'])
-    
-    # info_dict = {
-    #     'hostname': os.system("hostname"),
-    #     'ipv4': os.system("hostname -i"),
-    #     'active_cahnnels':CONFIG['active_channels'],
-    #     'resolution':
-    #     'publisher':{
-    #         'enabled':
-    #         'connected':
-    #     }
-    # }
-
     req_sampling_interval = float(CONFIG['requested_sampling_interval'][CONFIG['adc_resolution']])/1000  # need this in seconds not ms
     
     # At lower sampling intervals (higher samling rate) updating display is slower than sampling of the ADC chip.
@@ -102,17 +130,19 @@ def main():
     active_channels = CONFIG['active_channels']     
     display_mode = lcd.setmode(10 + active_channels[0])
     ch2bshown = active_channels[0]
-    # now the main loop starts and runs till process is interrupted by signal, this while-block can still be optimized!
+
     timestamp = time.time()
     sleeptime = 0.01
+    
+    # here the main loop starts and runs till process is interrupted by signal, this while-block can still be optimized imo!    
     while not (signalhandler.interrupt or signalhandler.terminate):    
         display_mode = lcd.getmode()        
         # try to receive and unpack struct
         try:
             channel, timestamp, value = struct.unpack('!idd', sock.recv(20)) # remember socket is set to non-blocking, meaning we will have here very often 'BlockingIOError'
-        except Exception as e: # (remember the "try" doesn't block because socket non-blocking) when exception don't do else block but still finally block 
+        except Exception as e: # (remember the "try" doesn't block because socket non-blocking) when exception arises the else block will be skipped and finally block executed
             display_is_laggy = False 
-        else:
+        else: # the "try" worked and there is new value from socket connection to sampler
             current_data[channel] = [timestamp, value, True] # here latest timestamp, value is saved for each channel. The boolean is flag to say if this channel was last sampled channel 
             # The values shouldn't be displayed if displayer slower than sampler, so display is only refreshed when not lagging 
             display_is_laggy = True if (time.time() - timestamp) > req_sampling_interval else False # this needs maybe fine tuning (2*req_sampling_innterval or add some 0.1ms)
@@ -127,66 +157,74 @@ def main():
                 if not current_data[ch2bshown][2]: pass         # means if value for channel user wants to see is not fresh then pass
                 else: lcd.draw_one_graph(ch2bshown, round(current_data[ch2bshown][1],3))
             elif display_mode == 40:                            # mode 40 shows the QR code (text set in config), should be a link to a dashboard feeded with live data using publisher
-                lcd.display_qr(qr_img)            
+                lcd.display_qr_and_info(qr_img)            
             else: pass # i can be 9, 11 to 18, 21 to 28 or 40, if its something else (= never) nothing shall happens     
-            current_data[channel][2]=False
-            # next line important: lcd.LCD.ShowImage() takes relatively long compared to sampling at low resolution, so shall just happen if display not laggy 
+            current_data[channel][2]=False      
+        finally:  # finally happens in every cycle; 
+            if 50 < display_mode < 55:
+                lcd.display_info(info_pages[str(info_page_nr)])
+            # next line important: lcd.LCD.ShowImage() takes relatively long compared to sampling at low resolution, so shall just happen if display not laggy
             if not display_is_laggy: 
-                lcd.LCD.ShowImage(lcd.img_to_show_next)
-        
-        finally: 
-            # in this block the behaviour after pushing a button is defined, that depends on current display_mode
-            if not buttons.any_button_pushed:
-                time.sleep(sleeptime)
-            else:
-                buttons.any_button_pushed = False
-                but = buttons.get_last_button_pushed()      # don't get confused: get_last_button_pushed means actually the "currently" pushed button, 
-                common_logger.info(f"Button pushed: {but}")
-                if display_mode == 9: # mode 9 is: all channels shown as number on display in portrait orientation
-                    if   but ==  "left": lcd.setmode(10 + lcd.last_shown_single_channel)
-                    elif but == "right": lcd.setmode(40)
-                    else: pass  
-                elif 10 < display_mode < 19: # mode 1x is: just one channel in landscape orientation   
-                    if   but ==   "left": lcd.setmode(20 + channel)
-                    elif but == "center": 
-                        if lcd.show_calc_val: lcd.show_calc_val = False
-                        else: lcd.show_calc_val = True
-                    elif but ==  "right": lcd.setmode(9)
-                    elif count_channels > 1: 
-                        j = active_channels.index(display_mode-10) # j is index, that is currently beeing displayed, of the array active_channels from config 
-                        if but ==  "down":  
-                            if j < count_channels-1: lcd.setmode(10 + active_channels[j+1])
-                            else:
-                                lcd.setmode(10 + active_channels[0])
-                                j = count_channels-1
-                        elif but == "up":
-                            if j > count_channels-1: lcd.setmode(10 + active_channels[0])
-                            else: 
-                                lcd.setmode(10 + active_channels[j-1])
-                        else:pass
-                    else: pass
-                elif 20 < display_mode < 29: # mode 2x is: just one cahnnel as graph
-                    if   but ==  "left": lcd.setmode(40)
-                    elif but == "right": lcd.setmode(10 + lcd.last_shown_single_channel)
-                    else: #count_channels > 1:
-                        j = active_channels.index(display_mode-20) # j is current index of the array active_channels from config 
-                        if but ==  "down":  
-                            if j < count_channels-1: lcd.setmode(20 + active_channels[j+1])
-                            else: lcd.setmode(20 + active_channels[0]) 
-                        elif but == "up":
-                            if j > 0: lcd.setmode(20 + active_channels[j-1])
-                            else: lcd.setmode(20 + active_channels[count_channels-1]) 
-                        else:pass  
-                elif display_mode == 40:
-                    if   but ==  "left": lcd.setmode(9)
-                    elif but == "right": lcd.setmode(20 + channel)
-                    elif but == "center": # temporarly to allow to make "screenshots"
-                        lcd.img_one_channel.save("./screenshots/land_"+str(time.time())+".png")
-                        lcd.img_multi_channel.save("./screenshots/port_"+str(time.time())+".png")
-                        for i in CONFIG['active_channels']:
-                            lcd.imgs_plots[i].save("./screenshots/graph_"+str(time.time())+".png")
+                lcd.LCD.ShowImage(lcd.img_to_show_next)        
+                
+        if not buttons.any_button_pushed:
+            time.sleep(sleeptime)
+        else: # the behaviour directly after pushing a button is defined here, which depends on current display_mode
+            buttons.any_button_pushed = False
+            but = buttons.get_last_button_pushed()      # don't get confused: get_last_button_pushed means actually the "currently" pushed button, 
+            common_logger.info(f"Button pushed: {but}")
+            if display_mode == 9: # mode 9 is: all channels shown as number on display in portrait orientation
+                if   but ==  "left": lcd.setmode(10 + lcd.last_shown_single_channel)
+                elif but == "right": lcd.setmode(50 + info_page_nr)
+                else: pass  
+            elif 10 < display_mode < 19: # mode 1x is: just one channel in landscape orientation   
+                if   but ==   "left": lcd.setmode(20 + channel)
+                elif but == "center": 
+                    if lcd.show_calc_val: lcd.show_calc_val = False
+                    else: lcd.show_calc_val = True
+                elif but ==  "right": lcd.setmode(9)
+                elif count_channels > 1: 
+                    j = active_channels.index(display_mode-10) # j is current index of the array active_channels from config 
+                    if but ==  "down":  
+                        if j < count_channels-1: lcd.setmode(10 + active_channels[j+1])
+                        else:
+                            lcd.setmode(10 + active_channels[0])
+                            j = count_channels-1
+                    elif but == "up":
+                        if j > count_channels-1: lcd.setmode(10 + active_channels[0])
+                        else: 
+                            lcd.setmode(10 + active_channels[j-1])
+                    else:pass
                 else: pass
-                if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message to mhia.py?
+            elif 20 < display_mode < 29: # mode 2x is: just one cahnnel as graph
+                if   but ==  "left": lcd.setmode(40)
+                elif but == "right": lcd.setmode(10 + lcd.last_shown_single_channel)
+                else: 
+                    j = active_channels.index(display_mode-20) # j is current index of the array active_channels from config 
+                    if but ==  "down":  
+                        if j < count_channels-1: lcd.setmode(20 + active_channels[j+1])
+                        else: lcd.setmode(20 + active_channels[0]) 
+                    elif but == "up":
+                        if j > 0: lcd.setmode(20 + active_channels[j-1])
+                        else: lcd.setmode(20 + active_channels[count_channels-1]) 
+                    else:pass  
+            elif display_mode == 40:
+                if   but ==  "left": lcd.setmode(50 + info_page_nr)
+                elif but == "right": lcd.setmode(20 + channel)
+                elif but == "center": # temporarly to allow to make "screenshots"
+                    lcd.img_one_channel.save("./screenshots/land_"+str(time.time())+".png")
+                    lcd.img_multi_channel.save("./screenshots/port_"+str(time.time())+".png")
+                    for i in CONFIG['active_channels']:
+                        lcd.imgs_plots[i].save("./screenshots/graph_"+str(time.time())+".png")
+            elif 50 < display_mode < 59:
+                if   but ==  "left": lcd.setmode(9)
+                elif but == "right": lcd.setmode(40)
+                else:
+                    if but == "up": info_page_nr = info_page_nr + 1 if info_page_nr < 3 else 3
+                    elif but == "down": info_page_nr = info_page_nr - 1 if info_page_nr > 1 else 1
+                    lcd.setmode(50 + info_page_nr)
+            else: pass
+            if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message or signal to mhia.py?
 
 
     # we are now out of the while block

@@ -124,7 +124,6 @@ class MhiaDisplay:
             except KeyError: #happens when pga for channel i not defined in config, or wrong... fallback to default (global pga 'adc_gain' in config)
                 self.pga[i] = self.pga[0]
                 self.pga_inv[i] = 1/self.pga[0]
-        print(self.pga, 5*self.pga_inv[8])
 
     def getmode(self):
         return self.__mode
@@ -251,10 +250,25 @@ class MhiaDisplay:
         self.last_drawn_plot_channel = channel
         self.img_to_show_next=self.imgs_plots[channel]
 
-    def display_qr(self, img):
+    def display_qr_and_info(self, img):
         #self.LCD.clear()
         self.qr_img = Image.new("RGB", (172,320), self.back_color1)
         self.qr_img.paste(img, (0,0))
+        text_to_draw = ""
+        # for i in info_dict:
+        #     text_to_draw = text_to_draw + str(i) + ":\n " + str(info_dict[str(i)]) + "\n"
+        # ImageDraw.Draw(self.qr_img).multiline_text((0,160), text_to_draw, fill = self.text_color1, font=self.font_regular_smallest)
+        #print(str(info_dict))
         self.img_to_show_next=self.qr_img
         self.__mode = 40 
+        return
+    
+    def display_info(self, info):
+        self.info_img = Image.new("RGB", (320,172), self.back_color1)
+        text_to_draw  = ""
+        for i in info:
+            text_to_draw = text_to_draw + str(i) + ":\n " + str(info[str(i)]) + "\n"
+        ImageDraw.Draw(self.info_img).multiline_text((10,10), text_to_draw, fill = self.text_color1, font=self.font_regular_small)
+        self.img_to_show_next=self.info_img.rotate(angle=270, expand=1)
+        # self.__mode = 50 + pagenumber
         return

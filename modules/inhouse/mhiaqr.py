@@ -12,6 +12,5 @@ class MhiaQR:
 
     def generate(self, fill_color, back_color, data=None):
         self.qr.add_data(data)
-        #self.qr.make(fit=True)
         return self.qr.make_image(fill_color=fill_color, back_color=back_color)
  
