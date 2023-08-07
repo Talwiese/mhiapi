@@ -39,6 +39,7 @@ class MhiaDisplay:
 
         #Creating the ImageFont objects
         self.font_regular_smallest = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['smallest'])
+        self.font_regular_smaller = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['smaller'])
         self.font_regular_small = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['small'])
         self.font_regular_medium = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProRegular'], self.cfg['display']['fontsizes']['medium'])
         self.font_bold_medium = ImageFont.truetype(self.cfg['display']['fontpaths']['SourceCodeProBold'], self.cfg['display']['fontsizes']['medium'])
@@ -268,7 +269,7 @@ class MhiaDisplay:
         text_to_draw  = ""
         for i in info:
             text_to_draw = text_to_draw + str(i) + ":\n " + str(info[str(i)]) + "\n"
-        ImageDraw.Draw(self.info_img).multiline_text((10,10), text_to_draw, fill = self.text_color1, font=self.font_regular_small)
+        ImageDraw.Draw(self.info_img).multiline_text((10,10), text_to_draw, fill = self.text_color1, font=self.font_regular_smaller)
         self.img_to_show_next=self.info_img.rotate(angle=270, expand=1)
         # self.__mode = 50 + pagenumber
         return

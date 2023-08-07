@@ -24,11 +24,12 @@ class MhiaButtons:
     
     # Why not put this assignment in config? This should not be changed for the mhia pi (v1.0) board. Change only if the baord design changes, or you enhance the board somehow. 
     # The keys of the dict should not be changed, since the displayer process accesses exactely these keys: "up", "down", ...
+    # Orientation: assume the display is used (mainly) in landscape orientation. The long side of the display is horizontal, so the buttons direction correspond to this orientation.
     _button_gpio_assignments = {
-        "up" : 16,
-        "down" : 21,
-        "left" : 12,
-        "right" : 20,
+        "left" : 16,    
+        "right" : 21,
+        "down" : 12,
+        "up" : 20,
         "center" : 26,
         "reset" : 4
     }

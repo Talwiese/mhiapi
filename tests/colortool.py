@@ -21,12 +21,12 @@ DC = 6
 BL = 13
 
 lcd = LCD_1inch47(spi=SPI.SpiDev(bus, device),spi_freq=5000000,rst=RST,dc=DC,bl=BL, bl_freq = 1)
-
+lcd.Init()
 but = MhiaButtons(200)
 
-r = 0
-g = 0
-b = 0
+r = 252
+g = 248
+b = 248
 
 img = Image.new("RGB", (172,320), (r,g,b))
 

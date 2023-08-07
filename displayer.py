@@ -173,55 +173,55 @@ def main():
             buttons.any_button_pushed = False
             but = buttons.get_last_button_pushed()      # don't get confused: get_last_button_pushed means actually the "currently" pushed button, 
             common_logger.info(f"Button pushed: {but}")
-            if display_mode == 9: # mode 9 is: all channels shown as number on display in portrait orientation
-                if   but ==  "left": lcd.setmode(10 + lcd.last_shown_single_channel)
-                elif but == "right": lcd.setmode(50 + info_page_nr)
+            if display_mode == 9: # mode 9 is: all channels shown at once in portrait orientation
+                if   but == "down": lcd.setmode(10 + lcd.last_shown_single_channel)
+                elif but == "up": lcd.setmode(50 + info_page_nr)
                 else: pass  
             elif 10 < display_mode < 19: # mode 1x is: just one channel in landscape orientation   
-                if   but ==   "left": lcd.setmode(20 + channel)
+                if   but == "down": lcd.setmode(20 + channel)
                 elif but == "center": 
                     if lcd.show_calc_val: lcd.show_calc_val = False
                     else: lcd.show_calc_val = True
-                elif but ==  "right": lcd.setmode(9)
+                elif but ==  "up": lcd.setmode(9)
                 elif count_channels > 1: 
                     j = active_channels.index(display_mode-10) # j is current index of the array active_channels from config 
-                    if but ==  "down":  
+                    if but == "right":  
                         if j < count_channels-1: lcd.setmode(10 + active_channels[j+1])
                         else:
                             lcd.setmode(10 + active_channels[0])
                             j = count_channels-1
-                    elif but == "up":
+                    elif but == "left":
                         if j > count_channels-1: lcd.setmode(10 + active_channels[0])
                         else: 
                             lcd.setmode(10 + active_channels[j-1])
                     else:pass
                 else: pass
             elif 20 < display_mode < 29: # mode 2x is: just one cahnnel as graph
-                if   but ==  "left": lcd.setmode(40)
-                elif but == "right": lcd.setmode(10 + lcd.last_shown_single_channel)
+                if   but == "down": lcd.setmode(40)
+                elif but == "up": lcd.setmode(10 + lcd.last_shown_single_channel)
                 else: 
                     j = active_channels.index(display_mode-20) # j is current index of the array active_channels from config 
-                    if but ==  "down":  
+                    if but == "right":  
                         if j < count_channels-1: lcd.setmode(20 + active_channels[j+1])
                         else: lcd.setmode(20 + active_channels[0]) 
-                    elif but == "up":
+                    elif but == "left":
                         if j > 0: lcd.setmode(20 + active_channels[j-1])
                         else: lcd.setmode(20 + active_channels[count_channels-1]) 
                     else:pass  
             elif display_mode == 40:
-                if   but ==  "left": lcd.setmode(50 + info_page_nr)
-                elif but == "right": lcd.setmode(20 + channel)
-                elif but == "center": # temporarly to allow to make "screenshots"
+                if   but == "down": lcd.setmode(50 + info_page_nr)
+                elif but == "up": lcd.setmode(20 + channel)
+                elif but == "center": # temporarly to allow to make "screenshots", very quick-and-dirty
                     lcd.img_one_channel.save("./screenshots/land_"+str(time.time())+".png")
                     lcd.img_multi_channel.save("./screenshots/port_"+str(time.time())+".png")
                     for i in CONFIG['active_channels']:
                         lcd.imgs_plots[i].save("./screenshots/graph_"+str(time.time())+".png")
             elif 50 < display_mode < 59:
-                if   but ==  "left": lcd.setmode(9)
-                elif but == "right": lcd.setmode(40)
+                if   but == "down": lcd.setmode(9)
+                elif but == "up": lcd.setmode(40)
                 else:
-                    if but == "up": info_page_nr = info_page_nr + 1 if info_page_nr < 3 else 3
-                    elif but == "down": info_page_nr = info_page_nr - 1 if info_page_nr > 1 else 1
+                    if but == "left": info_page_nr = info_page_nr + 1 if info_page_nr < 3 else 3
+                    elif but == "right": info_page_nr = info_page_nr - 1 if info_page_nr > 1 else 1
                     lcd.setmode(50 + info_page_nr)
             else: pass
             if but == "reset": os.system("sudo shutdown now") # more gracefully planned, message or signal to mhia.py?

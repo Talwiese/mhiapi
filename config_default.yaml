@@ -163,12 +163,12 @@ display:
   # - the blue channel also 1/8th of the 8-bit range, meaning 256/8 = 32 distinct blue shades [0, 8, 16, ..., 248]
   # resulting in max. 2^5 * 2^6 * 2^5 is around 65000 colors (not 262000 as in published datasheet of the display)
   # you can set any 24bit RGB, but on the display [32, 4, 64] is the same color as [35, 6, 69] or [33, 7, 71] 
-  back_color: [242,238,238]
-  text_color: [12,60,60]
-  text_color_less_visible: [180,180,180]
-  design_color1: [135,110,110]
-  design_color2: [160,100,160]
-  back_color2: [230,212,212]
+  back_color1: [252,248,248] #[248,196,196] on device looks like [252,248,248] when taking screenshot
+  back_color2: [248,240,240] #[240,180,180] on device looks like [248,240,240] when taking screenshot
+  text_color1: [8,56,56]
+  text_color2: [16,88,88]
+  design_color1: [128,104,104]
+  design_color2: [120,96,96]
   
   hw_settings:  # Don't change these! Do only if you know what you're doing.
     spi_bus: 0
@@ -187,12 +187,12 @@ display:
     FontAwesomeFreeRegular: "fonts/fontawesome6-free/otfs/Font Awesome 6 Free-Regular-400.otf"
   fontsizes:
     smallest: 16
-    smaller: 16
+    smaller: 20
     small: 26
-    medium: 30
+    medium: 28
     large: 32
-    larger: 62
-    largest: 62
+    larger: 72
+    largest: 72
   
   qr_text: "https://www.mhia.at"
 
