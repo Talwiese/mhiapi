@@ -54,7 +54,8 @@ active_channels: [1,2,3,4,5,6,7,8]
 #  - In most situations you will normally have non-zero values for '0' and '1' or for '0' and '-1' but not for all three coefficients at the same time
 channels_config:
   1:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0  # min voltage of sensors output
     max_voltage: 5  # max voltage of sensors output
@@ -66,7 +67,8 @@ channels_config:
         -1: 0       # this is devided by raw sensor value
       digits_after_decimal_point: 2       # for the calculated value only
   2:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0
     max_voltage: 5
@@ -78,7 +80,8 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   3:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0
     max_voltage: 5
@@ -90,7 +93,8 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   4:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0
     max_voltage: 5
@@ -102,7 +106,8 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   5:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0
     max_voltage: 5
@@ -114,7 +119,8 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   6:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0
     max_voltage: 5
@@ -126,7 +132,8 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   7:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0
     max_voltage: 5
@@ -138,7 +145,8 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   8:
-    id: null
+    id: not configured
+    label: not configured
     description: not configured
     min_voltage: 0
     max_voltage: 5
@@ -163,8 +171,8 @@ display:
   # - the blue channel also 1/8th of the 8-bit range, meaning 256/8 = 32 distinct blue shades [0, 8, 16, ..., 248]
   # resulting in max. 2^5 * 2^6 * 2^5 is around 65000 colors (not 262000 as in published datasheet of the display)
   # you can set any 24bit RGB, but on the display [32, 4, 64] is the same color as [35, 6, 69] or [33, 7, 71] 
-  back_color1: [252,248,248] #[248,196,196] on device looks like [252,248,248] when taking screenshot
-  back_color2: [248,240,240] #[240,180,180] on device looks like [248,240,240] when taking screenshot
+  back_color1: [248,196,196] #[248,196,196] on device looks like [252,248,248] on a normal monitor
+  back_color2: [240,180,180] #[240,180,180] on device looks like [248,240,240] on a normal monitor
   text_color1: [8,56,56]
   text_color2: [16,88,88]
   design_color1: [128,104,104]
