@@ -42,7 +42,7 @@ adc_gain: 1
 # channels 1, 2, 3, 4 are converted on first chip,
 # channels 5, 6, 7, 8 are converted on the second chip.
 # The value should be the wanted channels as a list (e.g. [1,2] or [3,4,7,8] or ...)
-active_channels: [1,2,3,4,5,6,7,8]
+active_channels: [8]
 
 # Configuration of each channel as a dictionary.
 # For each channel:
@@ -54,9 +54,9 @@ active_channels: [1,2,3,4,5,6,7,8]
 #  - In most situations you will normally have non-zero values for '0' and '1' or for '0' and '-1' but not for all three coefficients at the same time
 channels_config:
   1:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0  # min voltage of sensors output
     max_voltage: 5  # max voltage of sensors output
     calc:
@@ -67,9 +67,9 @@ channels_config:
         -1: 0       # this is devided by raw sensor value
       digits_after_decimal_point: 2       # for the calculated value only
   2:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0
     max_voltage: 5
     calc:
@@ -80,9 +80,9 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   3:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0
     max_voltage: 5
     calc:
@@ -93,9 +93,9 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   4:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0
     max_voltage: 5
     calc:
@@ -106,9 +106,9 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   5:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0
     max_voltage: 5
     calc:
@@ -119,9 +119,9 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   6:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0
     max_voltage: 5
     calc:
@@ -132,9 +132,9 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   7:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0
     max_voltage: 5
     calc:
@@ -145,9 +145,9 @@ channels_config:
         -1: 0
       digits_after_decimal_point: 2
   8:
-    id: not configured
-    label: not configured
-    description: not configured
+    id: N/A
+    label: N/A
+    description: N/A
     min_voltage: 0
     max_voltage: 5
     calc:
@@ -219,8 +219,11 @@ publisher:
   certfile_path: ""
   keyfile_path: ""
   cafile_path: ""
-  topic: "/Factory42/Line3/Machine7"
+  top_level_topic: "/Factory42/Line3/Machine7"
+  qos_for_sensor_values: 0
+  qos_for_meta_data: 1
   add_hostname_to_topic: Yes
+
 
 logging:
   version: 1

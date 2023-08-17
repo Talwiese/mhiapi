@@ -93,7 +93,7 @@ def main():
             'publisher_enabled': True if CONFIG['enabled_modules']['publisher'] else False,
             'connected_to_broker': 0,
             'mqtt_broker': CONFIG['publisher']['broker_host'] + ":" + str(CONFIG['publisher']['broker_port']),
-            'topic': CONFIG['publisher']['topic']
+            'top_level_topic': CONFIG['publisher']['top_level_topic']
         }
     }
     info_page_nr = 1
