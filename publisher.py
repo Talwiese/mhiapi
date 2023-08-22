@@ -37,10 +37,16 @@ keyfile=CONFIG['publisher']['keyfile_path']
 cafile=CONFIG['publisher']['cafile_path']
 brokerhost=CONFIG['publisher']['broker_host']
 brokerport=CONFIG['publisher']['broker_port']
+val_qos = CONFIG['publisher']['qos_for_sensor_values']
+meta_qos = CONFIG['publisher']['qos_for_meta_data']
 
 HOSTNAME = subprocess.run(["hostname"], capture_output=True, text=True).stdout.strip()
-topic_to_publish_about = CONFIG['publisher']['top_level_topic']
-topic_to_publish_about += ("/" + HOSTNAME + "/") if CONFIG['publisher']['add_hostname_to_topic'] else "/"
+top_level_topic = CONFIG['publisher']['top_level_topic']
+top_level_topic += ("/" + HOSTNAME + "/") if CONFIG['publisher']['add_hostname_to_topic'] else "/"
+topic_for_current_sensor_data = top_level_topic + "live/"
+topic_for_channels_config = top_level_topic + "channels_config"
+topic_for_active_channels = top_level_topic + "active_channels"
+topic_for_listening = top_level_topic + "requests"
 
 def on_connect(client, userdata, flags, rc):
     """
@@ -51,12 +57,15 @@ def on_connect(client, userdata, flags, rc):
     # reconnect then subscriptions will be renewed.
     #client.subscribe("$SYS/#")
 
-def on_message(client, userdata, msg): 
-    print("ji " +  str(msg.payload))
-    common_logger.info("Received topic: " + msg.topic + " | payload: " + str(msg.payload))
+def on_message(client, userdata, msg):
+    """
+    This callback will be called by a seperate thread (part of paho.mqtt.client) whenever messsage arrives for topic_for_listening
+    """
+    common_logger.info(f"Received {str(msg.payload)} about {str(msg.topic)}")
     if msg.payload == b"channels_config":
-        print("JO")
-        client.publish(topic_to_publish_about + "channels_config", json.dumps(CONFIG['channels_config']), qos=2, retain=True)
+        client.publish(topic_for_channels_config, json.dumps(CONFIG['channels_config']), qos=meta_qos, retain=True)
+    elif msg.payload == b"active_channels":
+        client.publish(topic_for_active_channels, json.dumps(CONFIG['active_channels']), qos=meta_qos, retain=True)
 
 def main():
     signalhandler = SignalHandler()
@@ -64,7 +73,7 @@ def main():
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.settimeout(2)
 
-    # establishing socket connection to sampler
+    # establishing uds connection to sampler
     conn_attempt = 0
     while not (signalhandler.interrupt or signalhandler.terminate):
         try:
@@ -79,45 +88,40 @@ def main():
             sock.send("publ".encode(encoding = 'UTF-8'))
             break
     common_logger.info("Connected to sampler...")
-
     mqttc = mqtt.Client()
     mqttc.on_connect = on_connect
     mqttc.on_message = on_message
-    toSend = []
-
-    print(certfile, cafile, keyfile)
     common_logger.info(f"Attempting to connect to MQTT broker using client cert:{certfile} and using cafile:{cafile} to authenticate server (broker).")
-
     mqttc.tls_set(ca_certs=cafile, certfile=certfile, keyfile=keyfile, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLS, ciphers=None) 
+    common_logger.info("Will use this top level topic: " + top_level_topic)
 
-    common_logger.info("Will use this topic: " + topic_to_publish_about)
-    
-    val_qos = CONFIG['publisher']['qos_for_sensor_values']
-    meta_qos = CONFIG['publisher']['qos_for_meta_data']
-
+    #establish connection to mqtt broker, when established start mqtt loop and subscribe to topic_for_listening
     try:
         mqttc.connect(brokerhost, port=brokerport, keepalive=60, bind_address="")
     except Exception as e:
-        if ("CERTIFICATE_VERIFY_FAILED" in str(e)): common_logger.info("Certificate not valid anymore! Contact administrator of the MQTT broker!")
+        if ("CERTIFICATE_VERIFY_FAILED" in str(e)): common_logger.info("Certificate not valid (anymore)! Contact administrator of the MQTT broker!")
         error_logger.error(f"CERTIFICATE_VERIFY_FAILED while trying to connect to MQTT broker!")
         common_logger.info("Exiting, could not establish MQTT connection.")
+        print("Error: Could not establish secure MQTT connection!")
         #other exceptions
         sys.exit(1)
     else:
+        # when mqttc.connect() works, the mqtt loop is started and publisher subscribes to "topic_for_listening" for receiving data/commands...
         common_logger.info(f"Connected to MQTT broker at {brokerhost}:{brokerport}.")
         mqttc.loop_start()
-        (subs_result, subs_mid) = mqttc.subscribe(topic_to_publish_about + "requests", 2)
-        print(subs_result, subs_mid)
+        (subs_result, subs_mid) = mqttc.subscribe(topic_for_listening, 2)
+        common_logger.info(f"Subscribed topic:{topic_for_listening} ")
+        #print(subs_result, subs_mid)
     finally: pass
 
     while not (signalhandler.interrupt or signalhandler.terminate):
         # exception handling is still missing here, tbd
             byx = sock.recv(20)
-            channel, timestamp, value = struct.unpack('!idd', byx) #!idd means: int (4bytes), double (8bytes), double (8bytes)
-            #a, b = str(timestamp), str(value)
-            mqttc.publish(topic_to_publish_about + "ch_" + str(channel), byx, qos=val_qos, retain=False)
-        #the next commented line was a test for https post instead of mqtt, maybe https option in future
-        #requests.post('https://nr1.ayatollahi.com/pipein', data = toSend, cert=('./mhiaProbe1.crt', './mhiaProbe1.key.pem'))
+            channel, timestamp, value = struct.unpack('!idd', byx) #!idd means: int (4 bytes), double (8 bytes), double (8 bytes)
+            mqttc.publish(topic_for_current_sensor_data + "ch_" + str(channel), byx, qos=val_qos, retain=False)
+    common_logger.info("Exiting because of SIGINT or SIGTERM!")
     mqttc.loop_stop()
+    mqttc.disconnect()
+    sys.exit(0)
 if __name__=="__main__":
     main()    

@@ -126,6 +126,7 @@ def main():
             else: 
                 error_logger.error(f"waited {temp_counter * sock.gettimeout()} seconds for requested processes, at least one of them did not connect!")
                 common_logger.info("Exiting, at least one needed process didn't connect in time!")
+                print("Error: A needed process is not running. Sampler should in general be started by the mhia script!")
                 sys.exit(1)
         else:
             tempstr = temp_sock.recv(4).decode(encoding = 'UTF-8')

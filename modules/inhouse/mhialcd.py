@@ -17,10 +17,11 @@
 import time
 import spidev
 from modules.thirdparty.waveshare import LCD_1inch47
+from modules.inhouse.mhiaqr import MhiaQR
 from PIL import Image,ImageDraw,ImageFont
 
 class MhiaDisplay:
-    def __init__(self, config) -> None:
+    def __init__(self, config, info_pages) -> None:
         '''
         Class of the Display including the images beeing shown on it.
         '''
@@ -60,14 +61,34 @@ class MhiaDisplay:
         #Creating the base images to be shown on the display
         self.img_multi_channel = Image.new("RGB", (172, 320), self.back_color1)
         self.img_one_channel = Image.new("RGB", (320,172), self.back_color1)
- 
-        self.qr_img = Image.new("RGB", (172,320), self.back_color1)
         self.labeltmpimg = Image.new("RGB", (42,172), self.back_color1) # this is a temp img for pasting vertical axis label on plots
         self.labeltmpimg2 = Image.new("RGB", (60,40), self.back_color1) # this is a temp img for pasting little box on right top of the plot
         self.imgs_plots = {}
         for channel in self.cfg['active_channels']:
             self.imgs_plots[channel] = Image.new("RGB", (172,320), self.back_color1) # this is drawn rotated from beginning, so no img.rotate needed later
 
+        # Creating static images (qr and info)
+        self.qr_img = Image.new("RGB", (172,320), self.back_color1)
+        #qr = MhiaQR()
+        self.qr_img.paste(MhiaQR().generate(self.text_color1, self.back_color1, config['display']['qr_text']), (0,0))
+        #for i in range(0,3):
+            #self.info_img[i] = Image.new("RGB", (320,172), self.back_color1)
+        #self.info_img = []*4
+        text_to_draw  = ""
+        self.info_img = [None]*3
+        print(len(self.info_img))
+
+        for page in info_pages:
+            print(page)
+            self.info_img[int(page)-1] = Image.new("RGB", (320,172), self.back_color1)
+            for key in info_pages[page]:
+                if (len(key)+len(str(info_pages[page][key]))) < 24:
+                    text_to_draw = text_to_draw + key + ": " + str(info_pages[page][key]) + "\n"
+                else:
+                    text_to_draw = text_to_draw + key + ": \n" + str(info_pages[page][key]) + "\n"
+            ImageDraw.Draw(self.info_img[int(page)-1]).multiline_text((10,10), text_to_draw, fill = self.text_color1, font=self.font_regular_smaller)
+
+        
         self.__mode = 11 # setting the mode of display, 11 means draw channel 1 (second digit) in landscape mode (first digit) 
 
         # this little block prepares lists to hold the points of the diagramm for each channel 
@@ -79,8 +100,6 @@ class MhiaDisplay:
             for i in range(0,240):
                 self.points_flat[j][i*2+1]=self.xs[i]
         self.counter_for_graph = 0  
-
-        #self.__connected_wifi_symbol = False
 
         self.sens_and_calc_text = ["SENS", "CALC"]
         (self.show_calc_val, self.calc_shown_prev_time)  = (False, True) # this assignment is necessary for the beginning
@@ -251,25 +270,12 @@ class MhiaDisplay:
         self.last_drawn_plot_channel = channel
         self.img_to_show_next=self.imgs_plots[channel]
 
-    def display_qr_and_info(self, img):
-        #self.LCD.clear()
-        self.qr_img = Image.new("RGB", (172,320), self.back_color1)
-        self.qr_img.paste(img, (0,0))
-        text_to_draw = ""
-        # for i in info_dict:
-        #     text_to_draw = text_to_draw + str(i) + ":\n " + str(info_dict[str(i)]) + "\n"
-        # ImageDraw.Draw(self.qr_img).multiline_text((0,160), text_to_draw, fill = self.text_color1, font=self.font_regular_smallest)
-        #print(str(info_dict))
+    def display_qr(self):
         self.img_to_show_next=self.qr_img
-        self.__mode = 40 
+        self.__mode = 40
         return
     
-    def display_info(self, info):
-        self.info_img = Image.new("RGB", (320,172), self.back_color1)
-        text_to_draw  = ""
-        for i in info:
-            text_to_draw = text_to_draw + str(i) + ":\n " + str(info[str(i)]) + "\n"
-        ImageDraw.Draw(self.info_img).multiline_text((10,10), text_to_draw, fill = self.text_color1, font=self.font_regular_smaller)
-        self.img_to_show_next=self.info_img.rotate(angle=270, expand=1)
-        # self.__mode = 50 + pagenumber
+    def display_info(self, page):
+        self.img_to_show_next=self.info_img[int(page)-1].rotate(angle=270, expand=1)
+        self.__mode = 50 + page
         return

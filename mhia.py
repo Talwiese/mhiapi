@@ -34,6 +34,7 @@ common_logger.info(f"Starting mhia application using configuration form {CONFIG_
 
 signalhandler = SignalHandler() 
 
+# the next function can be used to discover update of config-file. Intended to be used later for configuration update during runtime.
 def config_file_modified(memorized_mtime):
     """
     Little function delivers true, when mtim of config file is not a "memorized" value! update of memorized_time is still TBD ! 
@@ -78,12 +79,24 @@ def main():
         common_logger.info(process_labels[i] + " started with PID: " + str(process_pids[i]))
     #print(processes_started)
     # THIS NEEDS REWORK, WHAT DOES THE LOOP DO AFTER ALL PROCESSES STARTED?
-    while not (signalhandler.interrupt or signalhandler.terminate):
-        time.sleep(0.5)
     
-    common_logger.info("SIGINT or SIGTERM received! Trying to terminate subprocesses ...")
+    break_the_loop = False
+    while not (signalhandler.interrupt or signalhandler.terminate):
+        for i in processes_started:
+            ret_code = subpro[i].poll()
+            if not (ret_code==None):
+                print(f"{process_labels[i]} not running anymore, will terminate all other processes. Check the logs!")
+                processes_started.remove(i)
+                common_logger.info(f"{process_labels[i]} not running, will terminate all other processes.")
+                break_the_loop = True
+        if break_the_loop: break
+        time.sleep(0.2)
+    
+    text_to_log = "SIGINT or SIGTERM received! Trying to terminate subprocesses ..." if not break_the_loop else "A needed subprocess is not running, trying to terminate application ..."
+    common_logger.info(text_to_log)
+    exception_during_termination = False
     for i in processes_started:
-        str_popped=processes_started.pop()
+        str_popped=processes_started.pop()     
         try: 
             subpro[str_popped].terminate()
             if not subpro[str_popped].poll():
@@ -91,11 +104,18 @@ def main():
             else:
                 subpro[str_popped].kill()
                 if not subpro[str_popped].poll():
-                    common_logger.info(f"{str_popped} killed!")             
+                    common_logger.info(f"{str_popped} killed!")           
         except Exception as e: 
-            common_logger.info(f"Try to kill {str_popped} delivered exception: {e}")
-    common_logger.info("Exiting.")
-    sys.exit(0)
+            common_logger.info(f"Trying to kill {str_popped} resulted in exception: {e}")
+            exception_during_termination = True
+    if exception_during_termination or break_the_loop:
+        error_logger.error("Exiting due to error!")
+        print("Exiting due to error! Check the logs!") 
+        sys.exit(1)
+    else:
+        print("Exiting.") 
+        common_logger.info("Exiting.") 
+        sys.exit(0)
 
 if __name__=="__main__":
     main()   
