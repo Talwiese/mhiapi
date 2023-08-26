@@ -119,6 +119,7 @@ def main():
             byx = sock.recv(20)
             channel, timestamp, value = struct.unpack('!idd', byx) #!idd means: int (4 bytes), double (8 bytes), double (8 bytes)
             mqttc.publish(topic_for_current_sensor_data + "ch_" + str(channel), byx, qos=val_qos, retain=False)
+    
     common_logger.info("Exiting because of SIGINT or SIGTERM!")
     mqttc.loop_stop()
     mqttc.disconnect()

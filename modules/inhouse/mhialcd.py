@@ -74,19 +74,18 @@ class MhiaDisplay:
         #for i in range(0,3):
             #self.info_img[i] = Image.new("RGB", (320,172), self.back_color1)
         #self.info_img = []*4
-        text_to_draw  = ""
+        
+        
         self.info_img = [None]*3
-        print(len(self.info_img))
-
-        for page in info_pages:
-            print(page)
-            self.info_img[int(page)-1] = Image.new("RGB", (320,172), self.back_color1)
-            for key in info_pages[page]:
-                if (len(key)+len(str(info_pages[page][key]))) < 24:
-                    text_to_draw = text_to_draw + key + ": " + str(info_pages[page][key]) + "\n"
+        for page_nr in info_pages:
+            text_to_draw  = ""
+            self.info_img[int(page_nr)-1] = Image.new("RGB", (320,172), self.back_color1)
+            for key in info_pages[page_nr]:
+                if (len(key)+len(str(info_pages[page_nr][key]))) < 24:
+                    text_to_draw = text_to_draw + key + ": " + str(info_pages[page_nr][key]) + "\n"
                 else:
-                    text_to_draw = text_to_draw + key + ": \n" + str(info_pages[page][key]) + "\n"
-            ImageDraw.Draw(self.info_img[int(page)-1]).multiline_text((10,10), text_to_draw, fill = self.text_color1, font=self.font_regular_smaller)
+                    text_to_draw = text_to_draw + key + ": \n  " + str(info_pages[page_nr][key]) + "\n"
+            ImageDraw.Draw(self.info_img[int(page_nr)-1]).multiline_text((10,10), text_to_draw, fill = self.text_color1, font=self.font_regular_smaller)
 
         
         self.__mode = 11 # setting the mode of display, 11 means draw channel 1 (second digit) in landscape mode (first digit) 

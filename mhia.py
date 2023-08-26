@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# mhia.py - main process of the mhia pi aplication
-# Copyright (C) 2023  Iman Ayatollahi, Talwiese IoT Solutions e.U.
+# mhia.py - main process of the mhia pi application for the mhia pi HAT
+# Copyright (C) 2023, Iman Ayatollahi, Talwiese IoT Solutions e.U., www.mhia.at
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,14 +21,29 @@ import os, subprocess, time, sys, logging, logging.config
 from modules.inhouse.signalhandler import SignalHandler
 from modules.inhouse.mhiacfg import MhiaConfig
 
+print("\nmhia.py - main process of the mhia pi application for the mhia pi HAT")
+print("Copyright (C) 2023, Iman Ayatollahi, Talwiese IoT Solutions e.U., www.mhia.at\n")
+print("This program is free software: you can redistribute it and/or modify")
+print("it under the terms of the GNU General Public License as published by")
+print("the Free Software Foundation, either version 3 of the License, or")
+print("(at your option) any later version.\n")
+print("This program is distributed in the hope that it will be useful,")
+print("but WITHOUT ANY WARRANTY; without even the implied warranty of")
+print("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the")
+print("GNU General Public License for more details.\n")
+print("You should have received a copy of the GNU General Public License")
+print("along with this program.  If not, see <https://www.gnu.org/licenses/>.\n")
 
 CONFIG_PATH = "./config.yaml" if os.path.isfile("./config.yaml") else "./config_default.yaml"
 CONFIG = MhiaConfig(CONFIG_PATH).get_config()
+
+print(f"\n  {CONFIG_PATH} loaded...\n")
 
 logging.config.dictConfig(CONFIG['logging'])
 common_logger = logging.getLogger("standard")
 error_logger = logging.getLogger("error")
 
+print("  ... logger started ... \n")
 common_logger.info(f"Starting mhia application using configuration form {CONFIG_PATH}")
 
 
@@ -66,6 +81,8 @@ def main():
     if CONFIG['enabled_modules']['publisher']: processes_wanted.append("publ")
     if CONFIG['enabled_modules']['displayer']: processes_wanted.append("disp")
     
+    print(f"  ... will start these processes: {processes_wanted} \n")
+
     processes_started = []
     subpro = {}
 
@@ -76,8 +93,9 @@ def main():
         subpro[i] = subprocess.Popen([process_paths[i]], shell=False, encoding='UTF-8', bufsize=-1, text=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         processes_started.append(i)
         process_pids[i] = subpro[i].pid
-        common_logger.info(process_labels[i] + " started with PID: " + str(process_pids[i]))
-    #print(processes_started)
+        temp_text = process_labels[i] + " started with PID: " + str(process_pids[i])
+        common_logger.info(temp_text)
+        print("  " + temp_text)
     # THIS NEEDS REWORK, WHAT DOES THE LOOP DO AFTER ALL PROCESSES STARTED?
     
     break_the_loop = False
@@ -110,10 +128,10 @@ def main():
             exception_during_termination = True
     if exception_during_termination or break_the_loop:
         error_logger.error("Exiting due to error!")
-        print("Exiting due to error! Check the logs!") 
+        print("\nExiting due to error! Check the logs!") 
         sys.exit(1)
     else:
-        print("Exiting.") 
+        print("\nExiting... \n") 
         common_logger.info("Exiting.") 
         sys.exit(0)
 
