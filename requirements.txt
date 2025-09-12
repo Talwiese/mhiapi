@@ -1,8 +1,8 @@
-Pillow==8.1.2
-numpy==1.19.5
-RPi.GPIO==0.7.0
-smbus2==0.4.2
-spidev==3.5
-PyYAML==6.0
-qrcode==7.4.2
-paho-mqtt==1.6.1
+Pillow==10.0.0
+numpy==2.2.5
+RPi.GPIO==0.7.1a4
+smbus2==0.5.0
+spidev==3.7
+PyYAML==6.0.2
+qrcode==8.2
+paho-mqtt==2.1.0
